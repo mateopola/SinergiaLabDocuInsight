@@ -8,8 +8,10 @@ Correr con:
 
 from __future__ import annotations
 
+import base64
 import time
 from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -24,6 +26,13 @@ from schemas import (
 )
 
 
+@st.cache_data
+def _logo_b64() -> str:
+    """Devuelve el logo en base64 para embeberlo en HTML inline."""
+    path = Path(__file__).parent / "assets" / "logo.png"
+    return base64.b64encode(path.read_bytes()).decode("ascii")
+
+
 # ============================================================================
 # CONFIGURACIÓN GENERAL
 # ============================================================================
@@ -35,32 +44,46 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Paleta de marca SinergIA Lab
-PRIMARY = "#1E50B8"      # azul cobalto del logo
-ACCENT = "#E85D2C"       # naranja del logo (IA)
-LIGHT_BG = "#FAEFE6"     # crema cálido del logo
-DARK_TEXT = "#2D2D2D"    # gris oscuro del wordmark
+# Paleta exacta extraida del logo SinergIA Lab
+PRIMARY = "#0C74C8"        # azul de las figuras
+PRIMARY_DARK = "#0858A0"   # azul mas oscuro para profundidad
+ACCENT = "#FE6B23"         # naranja de la figura derecha y "IA"
+DARK_TEXT = "#41444B"      # gris del wordmark "Sinerg" y "LAB"
+LIGHT_BG = "#FFF4F4"       # crema del fondo del logo
 
 # CSS personalizado
 st.markdown(
     f"""
     <style>
         .main-header {{
-            background: linear-gradient(135deg, {PRIMARY} 0%, {ACCENT} 100%);
+            background: linear-gradient(135deg, {PRIMARY} 0%, {PRIMARY_DARK} 100%);
             color: white;
-            padding: 1.75rem 2rem;
+            padding: 1.5rem 2rem;
             border-radius: 0.75rem;
             margin-bottom: 1.5rem;
-            box-shadow: 0 4px 12px rgba(30, 80, 184, 0.18);
+            box-shadow: 0 4px 14px rgba(12, 116, 200, 0.22);
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }}
+        .main-header img.brand-logo {{
+            height: 72px;
+            width: 72px;
+            background: white;
+            padding: 6px;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+            flex-shrink: 0;
         }}
         .main-header h1 {{
             color: white !important;
             margin: 0;
             font-weight: 600;
             font-size: 2rem;
+            line-height: 1.15;
         }}
         .main-header p {{
-            color: rgba(255, 255, 255, 0.92);
+            color: rgba(255, 255, 255, 0.94);
             margin: 0.25rem 0 0 0;
             font-size: 1rem;
         }}
@@ -140,10 +163,13 @@ with st.sidebar:
 # ============================================================================
 
 st.markdown(
-    """
+    f"""
     <div class="main-header">
-        <h1>📄 DocuInsight</h1>
-        <p>Clasificación inteligente y extracción de entidades documentales · SinergIA Lab</p>
+        <img class="brand-logo" src="data:image/png;base64,{_logo_b64()}" alt="SinergIA Lab"/>
+        <div>
+            <h1>DocuInsight</h1>
+            <p>Clasificación inteligente y extracción de entidades documentales · SinergIA Lab</p>
+        </div>
     </div>
     """,
     unsafe_allow_html=True,

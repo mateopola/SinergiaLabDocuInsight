@@ -26,10 +26,10 @@ from schemas import (
 )
 
 
-# Paleta de marca SinergIA Lab
-BRAND_PRIMARY = "1E50B8"   # azul cobalto del logo
-BRAND_ACCENT = "E85D2C"    # naranja del logo (IA)
-BRAND_LIGHT = "FAEFE6"     # crema cálido del logo
+# Paleta exacta extraida del logo SinergIA Lab
+BRAND_PRIMARY = "0C74C8"   # azul de las figuras del logo
+BRAND_ACCENT = "FE6B23"    # naranja del logo
+BRAND_LIGHT = "FFF4F4"     # crema del fondo del logo
 
 HEADER_FILL = PatternFill("solid", fgColor=BRAND_PRIMARY)
 ALT_FILL = PatternFill("solid", fgColor=BRAND_LIGHT)
