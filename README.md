@@ -1,6 +1,6 @@
 # DocuInsight
 
-**Synergia Lab** · MVP de clasificación documental + extracción de entidades.
+**SinergIA Lab** · MVP de clasificación documental + extracción de entidades.
 
 Interfaz Streamlit para procesamiento por lote de cuatro tipos documentales:
 **Cédula de Ciudadanía**, **Cámara de Comercio**, **RUT** y **Pólizas**.

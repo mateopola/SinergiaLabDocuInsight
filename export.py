@@ -26,10 +26,10 @@ from schemas import (
 )
 
 
-# Synergia Lab brand
-BRAND_PRIMARY = "1E3A5F"   # azul profundo
-BRAND_ACCENT = "4FB3BF"    # teal
-BRAND_LIGHT = "E8F1F5"     # fondo suave
+# Paleta de marca SinergIA Lab
+BRAND_PRIMARY = "1E50B8"   # azul cobalto del logo
+BRAND_ACCENT = "E85D2C"    # naranja del logo (IA)
+BRAND_LIGHT = "FAEFE6"     # crema cálido del logo
 
 HEADER_FILL = PatternFill("solid", fgColor=BRAND_PRIMARY)
 ALT_FILL = PatternFill("solid", fgColor=BRAND_LIGHT)
@@ -78,7 +78,7 @@ def _build_summary_sheet(ws: Worksheet, results: list[DocumentResult]) -> None:
     ws["A1"].font = TITLE_FONT
     ws.merge_cells("A1:C1")
 
-    ws["A2"] = f"Synergia Lab · Generado {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    ws["A2"] = f"SinergIA Lab · Generado {datetime.now().strftime('%Y-%m-%d %H:%M')}"
     ws["A2"].font = SUBTITLE_FONT
     ws.merge_cells("A2:C2")
 

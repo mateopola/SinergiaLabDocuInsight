@@ -1,6 +1,6 @@
 """
 DocuInsight — Aplicación Streamlit.
-Synergia Lab · MVP de clasificación documental + extracción de entidades.
+SinergIA Lab · MVP de clasificación documental + extracción de entidades.
 
 Correr con:
     streamlit run app.py
@@ -29,16 +29,17 @@ from schemas import (
 # ============================================================================
 
 st.set_page_config(
-    page_title="DocuInsight · Synergia Lab",
+    page_title="DocuInsight · SinergIA Lab",
     page_icon="📄",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Paleta de marca
-PRIMARY = "#1E3A5F"
-ACCENT = "#4FB3BF"
-LIGHT_BG = "#F5F8FA"
+# Paleta de marca SinergIA Lab
+PRIMARY = "#1E50B8"      # azul cobalto del logo
+ACCENT = "#E85D2C"       # naranja del logo (IA)
+LIGHT_BG = "#FAEFE6"     # crema cálido del logo
+DARK_TEXT = "#2D2D2D"    # gris oscuro del wordmark
 
 # CSS personalizado
 st.markdown(
@@ -50,7 +51,7 @@ st.markdown(
             padding: 1.75rem 2rem;
             border-radius: 0.75rem;
             margin-bottom: 1.5rem;
-            box-shadow: 0 2px 8px rgba(30, 58, 95, 0.15);
+            box-shadow: 0 4px 12px rgba(30, 80, 184, 0.18);
         }}
         .main-header h1 {{
             color: white !important;
@@ -128,7 +129,7 @@ with st.sidebar:
 
     st.markdown(
         "<div style='text-align:center; color:#888; font-size:0.8rem; margin-top:2rem;'>"
-        "DocuInsight v0.1<br>Synergia Lab"
+        "DocuInsight v0.1<br>SinergIA Lab"
         "</div>",
         unsafe_allow_html=True,
     )
@@ -142,7 +143,7 @@ st.markdown(
     """
     <div class="main-header">
         <h1>📄 DocuInsight</h1>
-        <p>Clasificación inteligente y extracción de entidades documentales · Synergia Lab</p>
+        <p>Clasificación inteligente y extracción de entidades documentales · SinergIA Lab</p>
     </div>
     """,
     unsafe_allow_html=True,
