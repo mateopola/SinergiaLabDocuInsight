@@ -196,6 +196,34 @@ st.markdown(
             font-size: 0.72rem;
             font-weight: 600;
         }}
+        .sidebar-status .status-row .badge-info {{
+            background: #DBEAFE;
+            color: #1E40AF;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }}
+
+        /* === Jerarquía tipográfica clara: h1 >> h2 > h3 === */
+        .block-container h2 {{
+            font-size: 1.5rem !important;
+            font-weight: 600 !important;
+            color: {DARK_TEXT};
+            letter-spacing: -0.01em;
+            margin-top: 1.5rem !important;
+        }}
+        .block-container h3 {{
+            font-size: 1.2rem !important;
+            font-weight: 600 !important;
+            color: {DARK_TEXT};
+            margin-top: 1.25rem !important;
+        }}
+        /* Subheader de Streamlit renderiza como h3 — aplica también el ajuste */
+        [data-testid="stHeading"] h3 {{
+            font-size: 1.2rem !important;
+            font-weight: 600 !important;
+        }}
 
         /* === Page header limpio, sin banner === */
         .page-header {{
@@ -382,7 +410,7 @@ with st.sidebar:
     )
 
     st.markdown('<div class="sidebar-section-label">Estado del lote</div>', unsafe_allow_html=True)
-    mode_badge = "badge-on" if use_mock else "badge-off"
+    mode_badge = "badge-info" if use_mock else "badge-on"
     mode_text = "Mock" if use_mock else "Real"
     n_results = len(st.session_state.results)
     n_errors = sum(1 for r in st.session_state.results if r.error)
