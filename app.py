@@ -14,7 +14,11 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
+import plotly.express as px
 import streamlit as st
+from PIL import Image
+
+LOGO_PATH = Path(__file__).parent / "assets" / "logo.png"
 
 from export import build_excel
 from pipeline import get_pipeline
@@ -29,8 +33,39 @@ from schemas import (
 @st.cache_data
 def _logo_b64() -> str:
     """Devuelve el logo en base64 para embeberlo en HTML inline."""
-    path = Path(__file__).parent / "assets" / "logo.png"
-    return base64.b64encode(path.read_bytes()).decode("ascii")
+    return base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
+
+
+DOC_TYPE_ICONS = {
+    DocType.CEDULA: "🪪",
+    DocType.CAMARA_COMERCIO: "🏢",
+    DocType.RUT: "🧾",
+    DocType.POLIZA: "🛡️",
+    DocType.DESCONOCIDO: "❓",
+}
+
+DOC_TYPE_DESCRIPTIONS = {
+    DocType.CEDULA: "Identificación personal: nombres, apellidos, número, fechas.",
+    DocType.CAMARA_COMERCIO: "Información societaria: razón social, NIT, representante.",
+    DocType.RUT: "Registro tributario: NIT, CIIU, responsabilidades.",
+    DocType.POLIZA: "Pólizas de seguros: aseguradora, tomador, vigencias, prima.",
+}
+
+
+def _confidence_badge(value: float) -> str:
+    """Devuelve un badge HTML coloreado segun el umbral de confianza."""
+    pct = f"{value:.0%}"
+    if value >= 0.85:
+        bg, fg = "#DCFCE7", "#166534"   # verde
+    elif value >= 0.60:
+        bg, fg = "#FEF3C7", "#92400E"   # naranja-ambar
+    else:
+        bg, fg = "#FEE2E2", "#991B1B"   # rojo
+    return (
+        f'<span style="background:{bg};color:{fg};padding:2px 10px;'
+        f'border-radius:10px;font-weight:600;font-size:0.85em;'
+        f'display:inline-block;min-width:48px;text-align:center;">{pct}</span>'
+    )
 
 
 # ============================================================================
@@ -39,7 +74,7 @@ def _logo_b64() -> str:
 
 st.set_page_config(
     page_title="DocuInsight · SinergIA Lab",
-    page_icon="📄",
+    page_icon=Image.open(LOGO_PATH),
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -104,6 +139,82 @@ st.markdown(
         .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {{
             color: {PRIMARY};
             font-weight: 600;
+        }}
+        .doctype-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }}
+        .doctype-card {{
+            background: white;
+            border: 1px solid #E5E7EB;
+            border-left: 4px solid {PRIMARY};
+            border-radius: 0.5rem;
+            padding: 1rem 1.25rem;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }}
+        .doctype-card:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(12, 116, 200, 0.12);
+        }}
+        .doctype-card .icon {{
+            font-size: 1.75rem;
+            margin-bottom: 0.4rem;
+        }}
+        .doctype-card .title {{
+            color: {PRIMARY};
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 0 0 0.25rem 0;
+        }}
+        .doctype-card .desc {{
+            color: #6B7280;
+            font-size: 0.85rem;
+            margin: 0;
+            line-height: 1.4;
+        }}
+        .metric-card {{
+            background: white;
+            border: 1px solid #E5E7EB;
+            border-left: 4px solid {PRIMARY};
+            border-radius: 0.5rem;
+            padding: 1rem 1.25rem;
+            height: 100%;
+        }}
+        .metric-card .metric-label {{
+            color: #6B7280;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }}
+        .metric-card .metric-value {{
+            color: {DARK_TEXT};
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+        }}
+        .metric-card .metric-sub {{
+            color: #9CA3AF;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }}
+        .metric-card.accent {{
+            border-left-color: {ACCENT};
+        }}
+        .empty-state {{
+            text-align: center;
+            padding: 2rem 1rem;
+            color: #6B7280;
+        }}
+        .empty-state .big-icon {{
+            font-size: 3rem;
+            opacity: 0.4;
+            margin-bottom: 0.5rem;
         }}
     </style>
     """,
@@ -201,6 +312,20 @@ with tab_upload:
         label_visibility="collapsed",
     )
 
+    if not uploaded:
+        st.markdown("##### Tipos documentales soportados")
+        cards_html = '<div class="doctype-grid">'
+        for dt in [DocType.CEDULA, DocType.CAMARA_COMERCIO, DocType.RUT, DocType.POLIZA]:
+            cards_html += (
+                f'<div class="doctype-card">'
+                f'<div class="icon">{DOC_TYPE_ICONS[dt]}</div>'
+                f'<p class="title">{DOC_TYPE_LABELS[dt]}</p>'
+                f'<p class="desc">{DOC_TYPE_DESCRIPTIONS[dt]}</p>'
+                f'</div>'
+            )
+        cards_html += '</div>'
+        st.markdown(cards_html, unsafe_allow_html=True)
+
     if uploaded:
         st.success(f"✅ {len(uploaded)} archivo(s) cargado(s) y listo(s) para procesar")
 
@@ -276,15 +401,40 @@ with tab_results:
 
         # ---------- Resumen ----------
         st.subheader("Resumen")
-        cols = st.columns(5)
-        with cols[0]:
-            st.metric("Total procesados", len(results))
-        for i, dt in enumerate([DocType.CEDULA, DocType.CAMARA_COMERCIO, DocType.RUT, DocType.POLIZA]):
-            count = sum(1 for r in results if r.doc_type == dt)
-            with cols[i + 1]:
-                st.metric(DOC_TYPE_LABELS[dt], count)
 
         errors = [r for r in results if r.error]
+        n_total = len(results)
+        n_ok = n_total - len(errors)
+
+        cols = st.columns(5)
+        cards = [
+            (
+                "📊", "Total procesados", n_total,
+                f"{n_ok} ok · {len(errors)} con error",
+                False,
+            ),
+        ]
+        for dt in [DocType.CEDULA, DocType.CAMARA_COMERCIO, DocType.RUT, DocType.POLIZA]:
+            count = sum(1 for r in results if r.doc_type == dt)
+            pct = (count / n_total * 100) if n_total else 0
+            cards.append((
+                DOC_TYPE_ICONS[dt],
+                DOC_TYPE_LABELS[dt],
+                count,
+                f"{pct:.0f}% del lote",
+                count > 0,
+            ))
+
+        for col, (icon, label, value, sub, is_accent) in zip(cols, cards):
+            accent_cls = " accent" if is_accent else ""
+            col.markdown(
+                f'<div class="metric-card{accent_cls}">'
+                f'<div class="metric-label">{icon} {label}</div>'
+                f'<div class="metric-value">{value}</div>'
+                f'<div class="metric-sub">{sub}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
         if errors:
             st.warning(f"⚠️ {len(errors)} documento(s) con errores. Ver pestaña de errores abajo.")
 
@@ -309,6 +459,90 @@ with tab_results:
             )
 
         st.divider()
+
+        # ---------- Analytics ----------
+        ok_results = [r for r in results if not r.error]
+        if ok_results:
+            st.subheader("Analytics del lote")
+
+            col_pie, col_hist = st.columns([1, 1])
+
+            with col_pie:
+                dist_data = {
+                    DOC_TYPE_LABELS[dt]: sum(1 for r in ok_results if r.doc_type == dt)
+                    for dt in [DocType.CEDULA, DocType.CAMARA_COMERCIO, DocType.RUT, DocType.POLIZA]
+                }
+                dist_data = {k: v for k, v in dist_data.items() if v > 0}
+                if dist_data:
+                    fig_pie = px.pie(
+                        names=list(dist_data.keys()),
+                        values=list(dist_data.values()),
+                        title="Distribución por tipo documental",
+                        color_discrete_sequence=[PRIMARY, ACCENT, "#82A5C9", "#41444B"],
+                        hole=0.45,
+                    )
+                    fig_pie.update_traces(textposition="inside", textinfo="percent+label")
+                    fig_pie.update_layout(
+                        showlegend=True,
+                        height=320,
+                        margin=dict(t=50, b=20, l=20, r=20),
+                        font=dict(family="sans-serif", color=DARK_TEXT),
+                    )
+                    st.plotly_chart(fig_pie, use_container_width=True)
+
+            with col_hist:
+                confidences = [r.doc_type_confidence for r in ok_results]
+                fig_hist = px.histogram(
+                    x=confidences,
+                    nbins=10,
+                    title="Distribución de confianza de clasificación",
+                    color_discrete_sequence=[PRIMARY],
+                    range_x=[0, 1],
+                )
+                fig_hist.update_layout(
+                    xaxis_title="Confianza",
+                    yaxis_title="Documentos",
+                    height=320,
+                    bargap=0.05,
+                    margin=dict(t=50, b=40, l=40, r=20),
+                    font=dict(family="sans-serif", color=DARK_TEXT),
+                )
+                fig_hist.update_xaxes(tickformat=".0%")
+                st.plotly_chart(fig_hist, use_container_width=True)
+
+            # Tiempos de procesamiento
+            times = [r.processing_time_ms for r in ok_results if r.processing_time_ms]
+            if times:
+                total_s = sum(times) / 1000
+                avg_ms = sum(times) / len(times)
+                low_conf = sum(1 for r in ok_results if r.doc_type_confidence < 0.85)
+                t_col1, t_col2, t_col3 = st.columns(3)
+                t_col1.markdown(
+                    f'<div class="metric-card">'
+                    f'<div class="metric-label">⏱️ Tiempo total</div>'
+                    f'<div class="metric-value">{total_s:.1f}s</div>'
+                    f'<div class="metric-sub">procesando {len(times)} documento(s)</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+                t_col2.markdown(
+                    f'<div class="metric-card">'
+                    f'<div class="metric-label">⚡ Promedio por documento</div>'
+                    f'<div class="metric-value">{avg_ms:.0f}ms</div>'
+                    f'<div class="metric-sub">latencia media</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+                t_col3.markdown(
+                    f'<div class="metric-card accent">'
+                    f'<div class="metric-label">🔍 Requieren revisión</div>'
+                    f'<div class="metric-value">{low_conf}</div>'
+                    f'<div class="metric-sub">confianza < 85%</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+
+            st.divider()
 
         # ---------- Filtro ----------
         st.subheader("Detalle por documento")
@@ -335,7 +569,10 @@ with tab_results:
 
         # ---------- Detalle ----------
         for result in filtered:
-            icon = "❌" if result.error else "📄"
+            if result.error:
+                icon = "❌"
+            else:
+                icon = DOC_TYPE_ICONS.get(result.doc_type, "📄")
             header = (
                 f"{icon}  **{result.filename}**  ·  "
                 f"{DOC_TYPE_LABELS[result.doc_type]}"
@@ -349,21 +586,36 @@ with tab_results:
                     continue
 
                 if result.entities:
-                    df = pd.DataFrame(
-                        [
-                            {
-                                "Entidad": humanize_entity_label(e.label),
-                                "Valor": e.value,
-                                "Confianza": f"{e.confidence:.0%}",
-                            }
-                            for e in result.entities
-                        ]
+                    rows_html = "".join(
+                        f"<tr>"
+                        f"<td style='padding:8px 12px;border-bottom:1px solid #F3F4F6;color:#6B7280;font-size:0.85em;'>"
+                        f"{humanize_entity_label(e.label)}</td>"
+                        f"<td style='padding:8px 12px;border-bottom:1px solid #F3F4F6;font-weight:500;'>"
+                        f"{e.value}</td>"
+                        f"<td style='padding:8px 12px;border-bottom:1px solid #F3F4F6;text-align:center;'>"
+                        f"{_confidence_badge(e.confidence)}</td>"
+                        f"</tr>"
+                        for e in result.entities
                     )
-                    st.dataframe(df, use_container_width=True, hide_index=True)
+                    st.markdown(
+                        f'<table style="width:100%;border-collapse:collapse;'
+                        f'background:white;border:1px solid #E5E7EB;border-radius:6px;'
+                        f'overflow:hidden;">'
+                        f'<thead><tr style="background:{LIGHT_BG};">'
+                        f'<th style="padding:10px 12px;text-align:left;color:{DARK_TEXT};'
+                        f'font-size:0.8em;text-transform:uppercase;letter-spacing:0.05em;">Entidad</th>'
+                        f'<th style="padding:10px 12px;text-align:left;color:{DARK_TEXT};'
+                        f'font-size:0.8em;text-transform:uppercase;letter-spacing:0.05em;">Valor</th>'
+                        f'<th style="padding:10px 12px;text-align:center;color:{DARK_TEXT};'
+                        f'font-size:0.8em;text-transform:uppercase;letter-spacing:0.05em;width:90px;">Confianza</th>'
+                        f'</tr></thead><tbody>{rows_html}</tbody></table>',
+                        unsafe_allow_html=True,
+                    )
                 else:
                     st.info("No se extrajeron entidades de este documento.")
 
+                st.markdown("")
                 with st.popover("Ver texto extraído (OCR)"):
                     st.text(result.extracted_text or "(sin texto)")
 
-                st.caption(f"Tiempo de procesamiento: {result.processing_time_ms} ms")
+                st.caption(f"⏱️ Tiempo de procesamiento: {result.processing_time_ms} ms")
