@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocuInsight · Hiperautomatización Documental con IA · SinergIA Lab</title>
+    <meta name="description" content="DocuInsight es una plataforma de hiperautomatización impulsada por IA, ML y OCR que clasifica, interpreta y extrae información estratégica de documentos empresariales en tiempo real.">
+    <meta name="theme-color" content="#0C74C8">
+
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <link rel="apple-touch-icon" href="assets/logo.png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#0C74C8',
+                            'blue-dark': '#0858A0',
+                            'blue-light': '#E0F0FB',
+                            orange: '#FE6B23',
+                            'orange-light': '#FFE4D6',
+                            cream: '#FFF4F4',
+                            dark: '#41444B',
+                            ink: '#0F172A',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'float-slow': 'float 10s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'shimmer': 'shimmer 3s linear infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-brand-cream font-sans text-brand-dark antialiased overflow-x-hidden">
+
+    <!-- Top brand strip -->
+    <div class="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-blue to-brand-orange z-[100]"></div>
+
+    <!-- =========== NAV =========== -->
+    <nav id="nav" class="fixed top-1 left-0 right-0 z-50 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="#hero" class="flex items-center gap-3 group">
+                <div class="w-10 h-10 rounded-lg bg-white shadow-md p-1.5 group-hover:scale-105 transition-transform">
+                    <img src="assets/logo.png" alt="SinergIA Lab" class="w-full h-full object-contain">
+                </div>
+                <div class="leading-tight">
+                    <div class="font-display font-bold text-brand-dark">SinergIA Lab</div>
+                    <div class="text-xs font-semibold tracking-widest text-brand-blue uppercase">DocuInsight</div>
+                </div>
+            </a>
+
+            <div class="hidden lg:flex items-center gap-8 text-sm font-medium">
+                <a href="#what" class="text-brand-dark/70 hover:text-brand-blue transition-colors">Solución</a>
+                <a href="#capabilities" class="text-brand-dark/70 hover:text-brand-blue transition-colors">Capacidades</a>
+                <a href="#use-cases" class="text-brand-dark/70 hover:text-brand-blue transition-colors">Casos de uso</a>
+                <a href="#architecture" class="text-brand-dark/70 hover:text-brand-blue transition-colors">Arquitectura</a>
+                <a href="#team" class="text-brand-dark/70 hover:text-brand-blue transition-colors">Equipo</a>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <a href="https://sinergialabdocuinsight-6keqnqqtjdp5cp9wfq6yum.streamlit.app/" target="_blank" rel="noopener" class="hidden md:inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-brand-blue hover:bg-brand-blue/5 transition-colors">
+                    Demo en vivo
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </a>
+                <a href="#contact" class="inline-flex items-center px-5 py-2 rounded-lg bg-gradient-to-r from-brand-blue to-brand-orange text-white text-sm font-semibold shadow-md hover:shadow-lg hover:scale-[1.02] transition-all">
+                    Solicitar demo
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- =========== HERO =========== -->
+    <section id="hero" class="relative min-h-screen flex items-center pt-24 pb-16 overflow-hidden">
+        <!-- Mesh gradient background -->
+        <div class="absolute inset-0 mesh-bg"></div>
+
+        <!-- Floating abstract decoration -->
+        <div class="absolute top-32 right-0 lg:right-10 w-96 h-96 opacity-40 pointer-events-none animate-float-slow">
+            <svg viewBox="0 0 400 400" class="w-full h-full">
+                <defs>
+                    <linearGradient id="nodeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#0C74C8" stop-opacity="0.8"/>
+                        <stop offset="100%" stop-color="#FE6B23" stop-opacity="0.8"/>
+                    </linearGradient>
+                </defs>
+                <g stroke="url(#nodeGrad)" stroke-width="1.2" fill="none" opacity="0.6">
+                    <line x1="80" y1="80" x2="200" y2="120"/>
+                    <line x1="200" y1="120" x2="320" y2="80"/>
+                    <line x1="80" y1="80" x2="120" y2="220"/>
+                    <line x1="200" y1="120" x2="180" y2="240"/>
+                    <line x1="320" y1="80" x2="300" y2="200"/>
+                    <line x1="120" y1="220" x2="180" y2="240"/>
+                    <line x1="180" y1="240" x2="300" y2="200"/>
+                    <line x1="120" y1="220" x2="60" y2="320"/>
+                    <line x1="180" y1="240" x2="220" y2="340"/>
+                    <line x1="300" y1="200" x2="340" y2="320"/>
+                </g>
+                <g fill="url(#nodeGrad)">
+                    <circle cx="80" cy="80" r="6"/>
+                    <circle cx="200" cy="120" r="9"/>
+                    <circle cx="320" cy="80" r="6"/>
+                    <circle cx="120" cy="220" r="7"/>
+                    <circle cx="180" cy="240" r="10" class="animate-pulse-slow"/>
+                    <circle cx="300" cy="200" r="7"/>
+                    <circle cx="60" cy="320" r="5"/>
+                    <circle cx="220" cy="340" r="6"/>
+                    <circle cx="340" cy="320" r="5"/>
+                </g>
+            </svg>
+        </div>
+
+        <div class="relative max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-10 items-center w-full">
+            <div class="lg:col-span-7 space-y-7 fade-in-up">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass border border-brand-blue/15">
+                    <span class="relative flex w-2 h-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-orange opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-orange"></span>
+                    </span>
+                    <span class="text-xs font-semibold tracking-widest uppercase text-brand-dark/80">Hiperautomatización con IA</span>
+                </div>
+
+                <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.05] tracking-tight text-brand-ink">
+                    Transformamos documentos<br>en <span class="gradient-text">decisiones inteligentes</span>.
+                </h1>
+
+                <p class="text-lg sm:text-xl text-brand-dark/75 max-w-2xl leading-relaxed">
+                    Plataforma de hiperautomatización impulsada por <strong class="text-brand-dark">Inteligencia Artificial, Machine Learning y OCR avanzado</strong>, diseñada para clasificar, interpretar y extraer información estratégica de documentos empresariales en tiempo real.
+                </p>
+
+                <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                    <a href="#contact" class="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-gradient-to-r from-brand-blue to-brand-orange text-white font-semibold shadow-xl shadow-brand-blue/20 hover:shadow-2xl hover:scale-[1.02] transition-all">
+                        Solicitar demo
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                    </a>
+                    <a href="https://sinergialabdocuinsight-6keqnqqtjdp5cp9wfq6yum.streamlit.app/" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-white border-2 border-brand-blue/20 text-brand-blue font-semibold hover:border-brand-blue hover:bg-brand-blue/5 transition-all">
+                        Explorar capacidades
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </a>
+                </div>
+
+                <div class="grid grid-cols-3 gap-6 pt-8 max-w-lg">
+                    <div>
+                        <div class="font-display text-3xl font-bold gradient-text">4+</div>
+                        <div class="text-xs text-brand-dark/60 mt-1">Tipos documentales</div>
+                    </div>
+                    <div>
+                        <div class="font-display text-3xl font-bold gradient-text">≥85%</div>
+                        <div class="text-xs text-brand-dark/60 mt-1">Confianza promedio</div>
+                    </div>
+                    <div>
+                        <div class="font-display text-3xl font-bold gradient-text">Real<br>time</div>
+                        <div class="text-xs text-brand-dark/60 mt-1">Procesamiento</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right visual: stylized dashboard preview -->
+            <div class="lg:col-span-5 fade-in-up" style="animation-delay: 200ms;">
+                <div class="relative">
+                    <!-- Glow effect behind card -->
+                    <div class="absolute -inset-4 bg-gradient-to-r from-brand-blue/30 to-brand-orange/30 rounded-3xl blur-2xl"></div>
+
+                    <div class="relative glass-strong rounded-2xl p-6 shadow-2xl border border-white/40">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+                                <div class="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
+                                <div class="w-2.5 h-2.5 rounded-full bg-green-400"></div>
+                            </div>
+                            <div class="text-[10px] font-mono text-brand-dark/40 uppercase tracking-wider">docuinsight · live</div>
+                        </div>
+
+                        <!-- Document preview -->
+                        <div class="bg-white rounded-lg p-4 mb-3 shadow-sm border border-gray-100">
+                            <div class="flex items-start gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-brand-blue-light flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-xs text-brand-dark/60">poliza_seguros_2025.pdf</div>
+                                    <div class="font-semibold text-sm text-brand-dark mt-0.5">Póliza de Seguros</div>
+                                </div>
+                                <div class="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded">94%</div>
+                            </div>
+                        </div>
+
+                        <!-- Extracted entities -->
+                        <div class="space-y-1.5 mb-4">
+                            <div class="flex items-center justify-between text-xs px-3 py-2 bg-white/70 rounded-md">
+                                <span class="text-brand-dark/60">Aseguradora</span>
+                                <span class="font-medium text-brand-dark">SEGUROS BOLÍVAR S.A.</span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs px-3 py-2 bg-white/70 rounded-md">
+                                <span class="text-brand-dark/60">Número de póliza</span>
+                                <span class="font-medium text-brand-dark">P-2025-001234</span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs px-3 py-2 bg-white/70 rounded-md">
+                                <span class="text-brand-dark/60">Valor asegurado</span>
+                                <span class="font-medium text-brand-dark">$500.000.000</span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs px-3 py-2 bg-white/70 rounded-md">
+                                <span class="text-brand-dark/60">Vigencia</span>
+                                <span class="font-medium text-brand-dark">01/01 → 31/12/2025</span>
+                            </div>
+                        </div>
+
+                        <!-- Bottom bar -->
+                        <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                <span class="text-[11px] text-brand-dark/60">Procesado en 847ms</span>
+                            </div>
+                            <span class="text-[11px] font-semibold text-brand-blue">11 entidades extraídas</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scroll indicator -->
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50">
+            <div class="text-[10px] uppercase tracking-widest font-semibold text-brand-dark/60">Scroll</div>
+            <svg class="w-4 h-4 text-brand-dark/60 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+        </div>
+    </section>
+
+    <!-- =========== TECH MARQUEE =========== -->
+    <section class="py-10 border-y border-brand-dark/5 bg-white/50 backdrop-blur-sm">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center text-xs font-semibold tracking-widest uppercase text-brand-dark/50 mb-6">
+                Tecnologías que potencian la plataforma
+            </div>
+            <div class="flex flex-wrap justify-center items-center gap-x-10 gap-y-4 text-brand-dark/40 font-display font-semibold">
+                <span class="hover:text-brand-blue transition-colors">Inteligencia Artificial</span>
+                <span class="hover:text-brand-blue transition-colors">OCR</span>
+                <span class="hover:text-brand-blue transition-colors">Machine Learning</span>
+                <span class="hover:text-brand-blue transition-colors">LLMs</span>
+                <span class="hover:text-brand-blue transition-colors">RPA</span>
+                <span class="hover:text-brand-blue transition-colors">Agentes IA</span>
+                <span class="hover:text-brand-blue transition-colors">Python</span>
+                <span class="hover:text-brand-blue transition-colors">APIs Empresariales</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========== QUE ES =========== -->
+    <section id="what" class="py-24 relative">
+        <div class="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-start">
+            <div class="fade-in-up">
+                <div class="inline-block px-3 py-1 rounded-full bg-brand-blue/10 text-brand-blue text-xs font-bold tracking-widest uppercase mb-4">¿Qué es?</div>
+                <h2 class="font-display text-4xl lg:text-5xl font-bold text-brand-ink leading-tight mb-6">
+                    Automatización inteligente para procesos documentales.
+                </h2>
+                <p class="text-lg text-brand-dark/75 leading-relaxed mb-4">
+                    DocuInsight es una solución tecnológica enfocada en la <strong>automatización inteligente de procesos documentales empresariales</strong>. La plataforma combina capacidades de IA, OCR, Machine Learning, LLMs, RPA, Agentes y integraciones empresariales para transformar documentos no estructurados en información accionable y automatizable.
+                </p>
+                <p class="text-base text-brand-dark/60 leading-relaxed">
+                    Actualmente clasifica automáticamente y extrae entidades nombradas en documentos de identificación, societarios, tributarios, pólizas y formularios administrativos.
+                </p>
+            </div>
+
+            <div class="fade-in-up" style="animation-delay: 100ms;">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="glass-card group">
+                        <div class="text-3xl mb-2">🪪</div>
+                        <div class="font-bold text-brand-dark">Cédula de Ciudadanía</div>
+                        <div class="text-xs text-brand-dark/60 mt-1">Identificación personal completa</div>
+                    </div>
+                    <div class="glass-card group">
+                        <div class="text-3xl mb-2">🏢</div>
+                        <div class="font-bold text-brand-dark">Cámara de Comercio</div>
+                        <div class="text-xs text-brand-dark/60 mt-1">Información societaria</div>
+                    </div>
+                    <div class="glass-card group">
+                        <div class="text-3xl mb-2">🧾</div>
+                        <div class="font-bold text-brand-dark">RUT</div>
+                        <div class="text-xs text-brand-dark/60 mt-1">Registro tributario empresarial</div>
+                    </div>
+                    <div class="glass-card group">
+                        <div class="text-3xl mb-2">🛡️</div>
+                        <div class="font-bold text-brand-dark">Pólizas</div>
+                        <div class="text-xs text-brand-dark/60 mt-1">Seguros y coberturas</div>
+                    </div>
+                    <div class="glass-card group col-span-2 opacity-70">
+                        <div class="flex items-center gap-3">
+                            <div class="text-2xl">📋</div>
+                            <div>
+                                <div class="font-bold text-brand-dark">Formularios empresariales · Documentación legal</div>
+                                <div class="text-xs text-brand-dark/60 mt-0.5">Roadmap próximas releases</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========== MISION + VISION =========== -->
+    <section id="mission-vision" class="py-24 relative">
+        <div class="absolute inset-0 mesh-bg-2"></div>
+        <div class="relative max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-8">
+            <div class="fade-in-up glass-card-dark p-10 rounded-2xl">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-blue to-brand-blue-dark flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <div class="text-xs font-bold tracking-widest uppercase text-brand-blue">Nuestra Misión</div>
+                </div>
+                <h3 class="font-display text-2xl lg:text-3xl font-bold text-white mb-4 leading-snug">
+                    Impulsar la transformación digital con automatización inteligente.
+                </h3>
+                <p class="text-white/70 leading-relaxed">
+                    Generamos eficiencia operativa, trazabilidad y valor real para el negocio mediante soluciones de automatización e inteligencia artificial.
+                </p>
+            </div>
+
+            <div class="fade-in-up glass-card-dark p-10 rounded-2xl" style="animation-delay: 100ms;">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-orange to-red-500 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    </div>
+                    <div class="text-xs font-bold tracking-widest uppercase text-brand-orange">Nuestra Visión</div>
+                </div>
+                <h3 class="font-display text-2xl lg:text-3xl font-bold text-white mb-4 leading-snug">
+                    Liderar la hiperautomatización inteligente en Latinoamérica.
+                </h3>
+                <p class="text-white/70 leading-relaxed">
+                    Ayudar a las organizaciones a evolucionar hacia operaciones más inteligentes, ágiles y autónomas mediante el uso estratégico de la IA.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========== CAPACIDADES =========== -->
+    <section id="capabilities" class="py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center max-w-3xl mx-auto mb-16 fade-in-up">
+                <div class="inline-block px-3 py-1 rounded-full bg-brand-orange/10 text-brand-orange text-xs font-bold tracking-widest uppercase mb-4">Capacidades tecnológicas</div>
+                <h2 class="font-display text-4xl lg:text-5xl font-bold text-brand-ink leading-tight mb-4">
+                    Una pila de IA empresarial<br>diseñada para escalar.
+                </h2>
+                <p class="text-lg text-brand-dark/70">
+                    Modelos, automatización y orquestación trabajando en conjunto para resolver problemas reales del negocio.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="capability-card fade-in-up">
+                    <div class="capability-icon bg-gradient-to-br from-blue-500 to-brand-blue">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                    </div>
+                    <h3 class="capability-title">Inteligencia Artificial</h3>
+                    <p class="capability-desc">Modelos inteligentes para clasificación, comprensión documental y automatización cognitiva.</p>
+                </div>
+
+                <div class="capability-card fade-in-up" style="animation-delay: 50ms;">
+                    <div class="capability-icon bg-gradient-to-br from-brand-orange to-red-500">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    </div>
+                    <h3 class="capability-title">OCR Avanzado</h3>
+                    <p class="capability-desc">Extracción precisa de texto y datos desde documentos estructurados y no estructurados.</p>
+                </div>
+
+                <div class="capability-card fade-in-up" style="animation-delay: 100ms;">
+                    <div class="capability-icon bg-gradient-to-br from-purple-500 to-indigo-600">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    </div>
+                    <h3 class="capability-title">Machine Learning</h3>
+                    <p class="capability-desc">Entrenamiento y mejora continua de modelos predictivos y de clasificación.</p>
+                </div>
+
+                <div class="capability-card fade-in-up" style="animation-delay: 150ms;">
+                    <div class="capability-icon bg-gradient-to-br from-teal-500 to-green-600">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <h3 class="capability-title">RPA & Automatización</h3>
+                    <p class="capability-desc">Orquestación de procesos empresariales mediante automatización de extremo a extremo.</p>
+                </div>
+
+                <div class="capability-card fade-in-up" style="animation-delay: 200ms;">
+                    <div class="capability-icon bg-gradient-to-br from-pink-500 to-brand-orange">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                    </div>
+                    <h3 class="capability-title">LLMs & Agentes IA</h3>
+                    <p class="capability-desc">Asistentes inteligentes y agentes autónomos conectados a procesos corporativos.</p>
+                </div>
+
+                <div class="capability-card fade-in-up" style="animation-delay: 250ms;">
+                    <div class="capability-icon bg-gradient-to-br from-brand-blue-dark to-slate-700">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    </div>
+                    <h3 class="capability-title">Integraciones Empresariales</h3>
+                    <p class="capability-desc">Conexión con ERPs, BPMs, CRMs, APIs y plataformas corporativas existentes.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========== ENFOQUE ESTRATEGICO =========== -->
+    <section id="approach" class="py-24 bg-gradient-to-br from-brand-cream to-white">
+        <div class="max-w-7xl mx-auto px-6 grid lg:grid-cols-5 gap-12 items-center">
+            <div class="lg:col-span-2 fade-in-up">
+                <div class="inline-block px-3 py-1 rounded-full bg-brand-blue/10 text-brand-blue text-xs font-bold tracking-widest uppercase mb-4">Enfoque estratégico</div>
+                <h2 class="font-display text-4xl lg:text-5xl font-bold text-brand-ink leading-tight mb-6">
+                    Tecnología que genera valor real para el negocio.
+                </h2>
+                <p class="text-lg text-brand-dark/70 leading-relaxed">
+                    La automatización no consiste únicamente en implementar tecnología, sino en <strong>generar impacto real</strong>. Nuestras soluciones se alinean con la estrategia y los objetivos de cada organización.
+                </p>
+            </div>
+
+            <div class="lg:col-span-3 fade-in-up" style="animation-delay: 100ms;">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="strategy-pill"><span>📊</span>Estrategias organizacionales</div>
+                    <div class="strategy-pill"><span>⚙️</span>Objetivos operativos</div>
+                    <div class="strategy-pill"><span>📈</span>Eficiencia empresarial</div>
+                    <div class="strategy-pill"><span>💰</span>Optimización de costos</div>
+                    <div class="strategy-pill"><span>🚀</span>Escalabilidad tecnológica</div>
+                    <div class="strategy-pill"><span>♻️</span>Transformación sostenible</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========== CASOS DE USO =========== -->
+    <section id="use-cases" class="py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center max-w-3xl mx-auto mb-16 fade-in-up">
+                <div class="inline-block px-3 py-1 rounded-full bg-brand-orange/10 text-brand-orange text-xs font-bold tracking-widest uppercase mb-4">Casos de uso</div>
+                <h2 class="font-display text-4xl lg:text-5xl font-bold text-brand-ink leading-tight mb-4">
+                    Diseñado para procesos críticos.
+                </h2>
+                <p class="text-lg text-brand-dark/70">
+                    Aplicable a múltiples industrias y verticales corporativos.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div class="use-case-card fade-in-up">
+                    <div class="use-case-number">01</div>
+                    <h3 class="use-case-title">Validación documental</h3>
+                    <p class="use-case-desc">Automatización del proceso de validación de documentos en flujos críticos.</p>
+                </div>
+                <div class="use-case-card fade-in-up" style="animation-delay: 50ms;">
+                    <div class="use-case-number">02</div>
+                    <h3 class="use-case-title">Clasificación de expedientes</h3>
+                    <p class="use-case-desc">Organización inteligente de archivos masivos por tipo y contenido.</p>
+                </div>
+                <div class="use-case-card fade-in-up" style="animation-delay: 100ms;">
+                    <div class="use-case-number">03</div>
+                    <h3 class="use-case-title">Extracción legal</h3>
+                    <p class="use-case-desc">Identificación automática de cláusulas, partes y montos en contratos.</p>
+                </div>
+                <div class="use-case-card fade-in-up" style="animation-delay: 150ms;">
+                    <div class="use-case-number">04</div>
+                    <h3 class="use-case-title">Procesamiento masivo</h3>
+                    <p class="use-case-desc">Manejo eficiente de altos volúmenes documentales sin intervención humana.</p>
+                </div>
+                <div class="use-case-card fade-in-up" style="animation-delay: 200ms;">
+                    <div class="use-case-number">05</div>
+                    <h3 class="use-case-title">Onboarding documental</h3>
+                    <p class="use-case-desc">Aceleración del registro de clientes, proveedores y empleados.</p>
+                </div>
+                <div class="use-case-card fade-in-up" style="animation-delay: 250ms;">
+                    <div class="use-case-number">06</div>
+                    <h3 class="use-case-title">Validación de identidad</h3>
+                    <p class="use-case-desc">Verificación automática de documentos de identificación oficial.</p>
+                </div>
+                <div class="use-case-card fade-in-up lg:col-span-3 md:col-span-2" style="animation-delay: 300ms;">
+                    <div class="use-case-number">07</div>
+                    <h3 class="use-case-title">Digitalización de procesos operativos completos</h3>
+                    <p class="use-case-desc">Transición integral de operaciones basadas en papel hacia flujos digitales inteligentes y trazables.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========== ARQUITECTURA =========== -->
+    <section id="architecture" class="py-24 bg-brand-ink relative overflow-hidden">
+        <!-- Subtle grid pattern -->
+        <div class="absolute inset-0 architecture-grid opacity-20"></div>
+
+        <div class="relative max-w-7xl mx-auto px-6">
+            <div class="text-center max-w-3xl mx-auto mb-16 fade-in-up">
+                <div class="inline-block px-3 py-1 rounded-full bg-white/10 text-brand-orange text-xs font-bold tracking-widest uppercase mb-4 backdrop-blur-sm">Arquitectura moderna</div>
+                <h2 class="font-display text-4xl lg:text-5xl font-bold text-white leading-tight mb-4">
+                    Escalable. Modular.<br>
+                    <span class="gradient-text-light">Lista para integrarse.</span>
+                </h2>
+                <p class="text-lg text-white/70">
+                    Diseñada para conectarse con los ecosistemas empresariales existentes sin fricción.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 lg:grid-cols-6 gap-4 fade-in-up">
+                <div class="arch-tile">
+                    <div class="text-2xl mb-2">🔌</div>
+                    <div class="text-sm font-semibold text-white">APIs REST</div>
+                </div>
+                <div class="arch-tile">
+                    <div class="text-2xl mb-2">📊</div>
+                    <div class="text-sm font-semibold text-white">Plataformas BPM</div>
+                </div>
+                <div class="arch-tile">
+                    <div class="text-2xl mb-2">🏛️</div>
+                    <div class="text-sm font-semibold text-white">Sistemas ERP</div>
+                </div>
+                <div class="arch-tile">
+                    <div class="text-2xl mb-2">📁</div>
+                    <div class="text-sm font-semibold text-white">Sistemas ECM</div>
+                </div>
+                <div class="arch-tile">
+                    <div class="text-2xl mb-2">🗄️</div>
+                    <div class="text-sm font-semibold text-white">Bases de datos empresariales</div>
+                </div>
+                <div class="arch-tile">
+                    <div class="text-2xl mb-2">☁️</div>
+                    <div class="text-sm font-semibold text-white">Cloud & On-premise</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========== EQUIPO =========== -->
+    <section id="team" class="py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center max-w-3xl mx-auto mb-16 fade-in-up">
+                <div class="inline-block px-3 py-1 rounded-full bg-brand-blue/10 text-brand-blue text-xs font-bold tracking-widest uppercase mb-4">Equipo</div>
+                <h2 class="font-display text-4xl lg:text-5xl font-bold text-brand-ink leading-tight mb-4">
+                    Multidisciplinario.<br>Orientado al futuro digital.
+                </h2>
+                <p class="text-lg text-brand-dark/70">
+                    Experiencia en hiperautomatización, IA, desarrollo de software e integración empresarial.
+                </p>
+            </div>
+
+            <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                <div class="team-card fade-in-up">
+                    <div class="team-avatar" style="background: linear-gradient(135deg, #0C74C8 0%, #5BA3DD 100%);">YP</div>
+                    <div class="team-name">Yulieth Carolina<br>Pinto Pérez</div>
+                </div>
+                <div class="team-card fade-in-up" style="animation-delay: 50ms;">
+                    <div class="team-avatar" style="background: linear-gradient(135deg, #FE6B23 0%, #FFA56C 100%);">SM</div>
+                    <div class="team-name">Sebastián<br>Morales Quesada</div>
+                </div>
+                <div class="team-card fade-in-up" style="animation-delay: 100ms;">
+                    <div class="team-avatar" style="background: linear-gradient(135deg, #8B5CF6 0%, #C4B5FD 100%);">GH</div>
+                    <div class="team-name">Greyce Yeraldyn<br>Hernández Reina</div>
+                </div>
+                <div class="team-card fade-in-up" style="animation-delay: 150ms;">
+                    <div class="team-avatar" style="background: linear-gradient(135deg, #0858A0 0%, #0C74C8 100%);">MP</div>
+                    <div class="team-name">Mateo<br>Polanco Rodríguez</div>
+                </div>
+                <div class="team-card fade-in-up" style="animation-delay: 200ms;">
+                    <div class="team-avatar" style="background: linear-gradient(135deg, #14B8A6 0%, #5EEAD4 100%);">CM</div>
+                    <div class="team-name">Cristian Camilo<br>Montenegro Orjuela</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========== CTA FINAL =========== -->
+    <section id="contact" class="py-24 bg-gradient-to-br from-brand-cream via-white to-brand-cream relative overflow-hidden">
+        <div class="absolute inset-0 mesh-bg"></div>
+        <div class="relative max-w-4xl mx-auto px-6 text-center fade-in-up">
+            <h2 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-brand-ink leading-tight mb-6">
+                ¿Listo para transformar<br>tus procesos documentales?
+            </h2>
+            <p class="text-lg sm:text-xl text-brand-dark/70 mb-10 max-w-2xl mx-auto">
+                Agenda una demostración personalizada y descubre cómo DocuInsight puede generar valor en tu organización.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <a href="mailto:juancorsa1507@gmail.com?subject=Solicitud de demo · DocuInsight&body=Hola equipo SinergIA Lab,%0D%0A%0D%0AMe interesa conocer m%C3%A1s sobre DocuInsight. Mis datos:%0D%0A%0D%0ANombre:%0D%0AEmpresa:%0D%0ACargo:%0D%0AEmail corporativo:%0D%0ATel%C3%A9fono:%0D%0A%0D%0ABreve descripci%C3%B3n de mi caso de uso:%0D%0A%0D%0A" class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-brand-blue to-brand-orange text-white font-semibold text-lg shadow-2xl shadow-brand-blue/20 hover:shadow-2xl hover:scale-[1.02] transition-all">
+                    Solicitar demo
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                </a>
+                <a href="https://sinergialabdocuinsight-6keqnqqtjdp5cp9wfq6yum.streamlit.app/" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-white border-2 border-brand-blue/20 text-brand-blue font-semibold text-lg hover:border-brand-blue hover:bg-brand-blue/5 transition-all">
+                    Explorar la plataforma
+                </a>
+            </div>
+            <p class="text-sm text-brand-dark/50 mt-8">
+                Construyendo el futuro de la automatización inteligente en Latinoamérica.
+            </p>
+        </div>
+    </section>
+
+    <!-- =========== FOOTER =========== -->
+    <footer class="bg-brand-ink text-white/70 py-12">
+        <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-8">
+            <div class="md:col-span-2">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-lg bg-white p-1.5">
+                        <img src="assets/logo.png" alt="SinergIA Lab" class="w-full h-full object-contain">
+                    </div>
+                    <div class="leading-tight">
+                        <div class="font-display font-bold text-white">SinergIA Lab</div>
+                        <div class="text-xs font-semibold tracking-widest text-brand-orange uppercase">DocuInsight</div>
+                    </div>
+                </div>
+                <p class="text-sm text-white/60 max-w-md">
+                    Plataforma de hiperautomatización e inteligencia documental para organizaciones latinoamericanas.
+                </p>
+            </div>
+            <div>
+                <div class="text-xs font-bold tracking-widest uppercase text-white/40 mb-3">Plataforma</div>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="#what" class="hover:text-brand-orange transition-colors">Solución</a></li>
+                    <li><a href="#capabilities" class="hover:text-brand-orange transition-colors">Capacidades</a></li>
+                    <li><a href="#use-cases" class="hover:text-brand-orange transition-colors">Casos de uso</a></li>
+                    <li><a href="#architecture" class="hover:text-brand-orange transition-colors">Arquitectura</a></li>
+                </ul>
+            </div>
+            <div>
+                <div class="text-xs font-bold tracking-widest uppercase text-white/40 mb-3">Contacto</div>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="#team" class="hover:text-brand-orange transition-colors">Equipo</a></li>
+                    <li><a href="mailto:juancorsa1507@gmail.com" class="hover:text-brand-orange transition-colors">Solicitar demo</a></li>
+                    <li><a href="https://sinergialabdocuinsight-6keqnqqtjdp5cp9wfq6yum.streamlit.app/" target="_blank" rel="noopener" class="hover:text-brand-orange transition-colors">Demo en vivo →</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="max-w-7xl mx-auto px-6 mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-white/40">
+            <div>© 2026 SinergIA Lab · Todos los derechos reservados</div>
+            <div class="flex items-center gap-1.5">
+                <div class="w-1.5 h-1.5 rounded-full bg-brand-orange animate-pulse"></div>
+                <span>Construyendo el futuro de la automatización inteligente en Latinoamérica</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

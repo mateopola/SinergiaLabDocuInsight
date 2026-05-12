@@ -1,0 +1,399 @@
+/* =========================================================
+   DocuInsight Landing · SinergIA Lab
+   Custom styles complementing Tailwind CDN
+   ========================================================= */
+
+:root {
+    --brand-blue: #0C74C8;
+    --brand-blue-dark: #0858A0;
+    --brand-blue-light: #E0F0FB;
+    --brand-orange: #FE6B23;
+    --brand-cream: #FFF4F4;
+    --brand-dark: #41444B;
+    --brand-ink: #0F172A;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* =========================================================
+   GRADIENTS & BRAND TEXT
+   ========================================================= */
+.gradient-text {
+    background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-orange) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: inline-block;
+}
+
+.gradient-text-light {
+    background: linear-gradient(135deg, #5BA3DD 0%, #FFA56C 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: inline-block;
+}
+
+/* =========================================================
+   GLASSMORPHISM
+   ========================================================= */
+.glass {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.glass-strong {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 1rem;
+    padding: 1.25rem 1.25rem 1.1rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.glass-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -10px rgba(12, 116, 200, 0.18);
+    border-color: rgba(12, 116, 200, 0.3);
+}
+
+.glass-card-dark {
+    background: linear-gradient(135deg,
+        rgba(15, 23, 42, 0.96) 0%,
+        rgba(15, 23, 42, 0.88) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 25px 50px -12px rgba(12, 116, 200, 0.25);
+}
+
+/* =========================================================
+   MESH BACKGROUNDS
+   ========================================================= */
+.mesh-bg {
+    background-image:
+        radial-gradient(at 12% 18%, hsla(208, 88%, 60%, 0.18) 0px, transparent 50%),
+        radial-gradient(at 87% 22%, hsla(19, 99%, 56%, 0.15) 0px, transparent 50%),
+        radial-gradient(at 52% 91%, hsla(208, 88%, 60%, 0.10) 0px, transparent 50%),
+        radial-gradient(at 92% 80%, hsla(19, 99%, 56%, 0.08) 0px, transparent 50%);
+}
+
+.mesh-bg-2 {
+    background-image:
+        radial-gradient(at 50% 0%, hsla(208, 88%, 50%, 0.06) 0px, transparent 50%),
+        radial-gradient(at 80% 100%, hsla(19, 99%, 56%, 0.05) 0px, transparent 50%);
+}
+
+/* =========================================================
+   ARCHITECTURE GRID PATTERN
+   ========================================================= */
+.architecture-grid {
+    background-image:
+        linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 30%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 30%, transparent 80%);
+}
+
+/* =========================================================
+   CAPABILITY CARDS
+   ========================================================= */
+.capability-card {
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 1rem;
+    padding: 1.75rem 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.capability-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--brand-blue) 0%, var(--brand-orange) 100%);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.35s ease;
+}
+
+.capability-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 24px 48px -16px rgba(15, 23, 42, 0.12);
+    border-color: transparent;
+}
+
+.capability-card:hover::before {
+    transform: scaleX(1);
+}
+
+.capability-icon {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.1rem;
+    box-shadow: 0 8px 20px -8px rgba(12, 116, 200, 0.35);
+}
+
+.capability-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--brand-ink);
+    margin-bottom: 0.5rem;
+}
+
+.capability-desc {
+    font-size: 0.92rem;
+    color: rgba(65, 68, 75, 0.7);
+    line-height: 1.55;
+}
+
+/* =========================================================
+   STRATEGY PILLS
+   ========================================================= */
+.strategy-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 0.75rem;
+    padding: 0.85rem 1.1rem;
+    font-weight: 500;
+    color: var(--brand-dark);
+    transition: all 0.25s ease;
+    font-size: 0.95rem;
+}
+
+.strategy-pill:hover {
+    border-color: var(--brand-blue);
+    background: linear-gradient(135deg, rgba(12,116,200,0.04), rgba(254,107,35,0.04));
+    transform: translateX(4px);
+}
+
+.strategy-pill span {
+    font-size: 1.25rem;
+}
+
+/* =========================================================
+   USE CASE CARDS
+   ========================================================= */
+.use-case-card {
+    background: white;
+    border: 1px solid #EDE8E2;
+    border-radius: 1rem;
+    padding: 1.5rem 1.5rem 1.6rem;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.use-case-card:hover {
+    border-color: var(--brand-blue);
+    box-shadow: 0 16px 32px -12px rgba(12, 116, 200, 0.15);
+    transform: translateY(-3px);
+}
+
+.use-case-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--brand-orange);
+    margin-bottom: 0.75rem;
+}
+
+.use-case-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--brand-ink);
+    margin-bottom: 0.5rem;
+    line-height: 1.25;
+}
+
+.use-case-desc {
+    font-size: 0.9rem;
+    color: rgba(65, 68, 75, 0.65);
+    line-height: 1.5;
+}
+
+/* =========================================================
+   ARCHITECTURE TILES
+   ========================================================= */
+.arch-tile {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.875rem;
+    padding: 1.25rem 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.arch-tile:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(254, 107, 35, 0.4);
+    transform: translateY(-3px);
+}
+
+/* =========================================================
+   TEAM CARDS
+   ========================================================= */
+.team-card {
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.team-card:hover {
+    transform: translateY(-4px);
+}
+
+.team-avatar {
+    width: 5.5rem;
+    height: 5.5rem;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.4rem;
+    letter-spacing: 0.02em;
+    box-shadow: 0 10px 24px -8px rgba(15, 23, 42, 0.25);
+    border: 3px solid white;
+    transition: all 0.3s ease;
+}
+
+.team-card:hover .team-avatar {
+    box-shadow: 0 16px 32px -8px rgba(12, 116, 200, 0.35);
+    transform: scale(1.05);
+}
+
+.team-name {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--brand-ink);
+    line-height: 1.35;
+}
+
+/* =========================================================
+   FADE-IN ANIMATIONS (scroll triggered)
+   ========================================================= */
+.fade-in-up {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fade-in-up.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* =========================================================
+   FLOAT ANIMATION KEYFRAMES (for Tailwind animate-float)
+   ========================================================= */
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-12px); }
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
+
+/* =========================================================
+   NAV SCROLL BEHAVIOR
+   ========================================================= */
+#nav.scrolled {
+    background: rgba(255, 244, 244, 0.85);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    box-shadow: 0 4px 20px -8px rgba(15, 23, 42, 0.08);
+}
+
+#nav.scrolled .py-4 {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+}
+
+/* =========================================================
+   SELECTION COLOR
+   ========================================================= */
+::selection {
+    background: var(--brand-blue);
+    color: white;
+}
+
+::-moz-selection {
+    background: var(--brand-blue);
+    color: white;
+}
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--brand-cream);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--brand-blue), var(--brand-orange));
+    border-radius: 5px;
+    border: 2px solid var(--brand-cream);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--brand-blue-dark), var(--brand-orange));
+}
+
+/* =========================================================
+   RESPONSIVE TWEAKS
+   ========================================================= */
+@media (max-width: 640px) {
+    .capability-card {
+        padding: 1.5rem 1.25rem;
+    }
+    .team-avatar {
+        width: 4.5rem;
+        height: 4.5rem;
+        font-size: 1.2rem;
+    }
+}
