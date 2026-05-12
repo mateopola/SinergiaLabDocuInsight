@@ -90,91 +90,176 @@ LIGHT_BG = "#FFF4F4"       # crema del fondo del logo
 st.markdown(
     f"""
     <style>
-        /* Reducir padding superior para que header y sidebar-brand arranquen al tope */
+        /* === Tipografía base estilo Linear/Notion === */
+        html, body, [class*="css"] {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter",
+                         "Helvetica Neue", Arial, sans-serif;
+        }}
+
+        /* Header de Streamlit Cloud transparente para no pintar franja */
         [data-testid="stHeader"] {{
             background: transparent;
             height: 0;
         }}
         .block-container {{
-            padding-top: 1.5rem !important;
+            padding-top: 2rem !important;
             padding-bottom: 3rem !important;
+            max-width: 1400px;
         }}
         section[data-testid="stSidebar"] > div:first-child {{
-            padding-top: 0 !important;
+            padding-top: 1.25rem !important;
         }}
         section[data-testid="stSidebar"] {{
             background-color: {LIGHT_BG};
+            border-right: 1px solid #EFE2D6;
         }}
 
-        /* Bloque de marca en el tope del sidebar */
+        /* === Sidebar brand compacto, estilo dashboard === */
         .sidebar-brand {{
-            background: linear-gradient(135deg, {PRIMARY} 0%, {PRIMARY_DARK} 100%);
-            margin: 0 -1rem 1.25rem -1rem;
-            padding: 2.25rem 1rem 1.25rem 1rem;
-            text-align: center;
-            box-shadow: 0 4px 14px rgba(12, 116, 200, 0.18);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0 0 1rem 0;
+            margin: 0 0 1rem 0;
+            border-bottom: 1px solid #EFE2D6;
         }}
         .sidebar-brand img {{
-            height: 68px;
-            width: 68px;
+            width: 44px;
+            height: 44px;
+            border-radius: 0.5rem;
+            flex-shrink: 0;
             background: white;
-            padding: 6px;
-            border-radius: 0.6rem;
-            display: block;
-            margin: 0 auto 0.65rem auto;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+            padding: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }}
+        .sidebar-brand .brand-text {{
+            display: flex;
+            flex-direction: column;
+            line-height: 1.15;
         }}
         .sidebar-brand .brand-name {{
-            color: white;
+            color: {DARK_TEXT};
             font-weight: 700;
-            font-size: 1.1rem;
-            letter-spacing: 0.02em;
+            font-size: 0.95rem;
             margin: 0;
         }}
         .sidebar-brand .brand-sub {{
-            color: rgba(255, 255, 255, 0.85);
+            color: {PRIMARY};
+            font-weight: 600;
             font-size: 0.7rem;
             text-transform: uppercase;
-            letter-spacing: 0.2em;
-            margin: 0.3rem 0 0 0;
+            letter-spacing: 0.12em;
+            margin-top: 2px;
         }}
 
-        /* Header principal — sin logo (ya está en sidebar), alineado con sidebar-brand */
-        .main-header {{
-            background: linear-gradient(135deg, {PRIMARY} 0%, {PRIMARY_DARK} 100%);
-            color: white;
-            padding: 2rem 2rem 1.5rem 2rem;
-            border-radius: 0.6rem;
-            margin: 0 0 1.5rem 0;
-            box-shadow: 0 4px 14px rgba(12, 116, 200, 0.18);
+        /* === Etiquetas de sección en el sidebar === */
+        .sidebar-section-label {{
+            color: #6B7280;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin: 1.25rem 0 0.5rem 0;
         }}
-        .main-header h1 {{
-            color: white !important;
-            margin: 0;
+        .sidebar-status {{
+            background: white;
+            border: 1px solid #EFE2D6;
+            border-radius: 0.5rem;
+            padding: 0.65rem 0.8rem;
+            font-size: 0.85rem;
+            color: {DARK_TEXT};
+            margin-top: 0.4rem;
+        }}
+        .sidebar-status .status-row {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.15rem 0;
+        }}
+        .sidebar-status .status-row span:first-child {{
+            color: #6B7280;
+            font-size: 0.78rem;
+        }}
+        .sidebar-status .status-row .badge-on {{
+            background: #DCFCE7;
+            color: #166534;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }}
+        .sidebar-status .status-row .badge-off {{
+            background: #F3F4F6;
+            color: #6B7280;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }}
+
+        /* === Page header limpio, sin banner === */
+        .page-header {{
+            padding: 0 0 1.25rem 0;
+            margin: 0 0 1.75rem 0;
+            border-bottom: 1px solid #E5E7EB;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 1rem;
+        }}
+        .page-header h1 {{
+            color: {DARK_TEXT};
+            font-size: 2.25rem;
             font-weight: 700;
-            font-size: 1.9rem;
+            margin: 0;
+            letter-spacing: -0.02em;
             line-height: 1.1;
         }}
-        .main-header p {{
-            color: rgba(255, 255, 255, 0.92);
-            margin: 0.4rem 0 0 0;
+        .page-header p {{
+            color: #6B7280;
             font-size: 1rem;
+            margin: 0.4rem 0 0 0;
+            line-height: 1.4;
+        }}
+        .page-header .accent-bar {{
+            width: 48px;
+            height: 4px;
+            background: linear-gradient(90deg, {PRIMARY} 0%, {ACCENT} 100%);
+            border-radius: 2px;
+            margin-bottom: 0.75rem;
         }}
 
+        /* === Botones === */
         .stButton > button[kind="primary"] {{
             background-color: {PRIMARY};
             color: white;
             border: none;
             font-weight: 500;
+            box-shadow: 0 1px 2px rgba(12, 116, 200, 0.2);
         }}
         .stButton > button[kind="primary"]:hover {{
-            background-color: {ACCENT};
+            background-color: {PRIMARY_DARK};
             color: white;
             border: none;
+            box-shadow: 0 2px 6px rgba(12, 116, 200, 0.3);
+        }}
+
+        /* === Tabs más prominentes === */
+        .stTabs [data-baseweb="tab-list"] {{
+            gap: 0.5rem;
+            border-bottom: 1px solid #E5E7EB;
+        }}
+        .stTabs [data-baseweb="tab"] {{
+            padding: 0.6rem 1rem;
+            font-size: 0.95rem;
         }}
         .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {{
             color: {PRIMARY};
             font-weight: 600;
+        }}
+        .stTabs [data-baseweb="tab-highlight"] {{
+            background-color: {PRIMARY};
+            height: 3px;
         }}
         .doctype-grid {{
             display: grid;
@@ -277,14 +362,16 @@ with st.sidebar:
         f"""
         <div class="sidebar-brand">
             <img src="data:image/png;base64,{_logo_b64()}" alt="SinergIA Lab"/>
-            <div class="brand-name">SinergIA Lab</div>
-            <div class="brand-sub">DocuInsight v0.1</div>
+            <div class="brand-text">
+                <span class="brand-name">SinergIA Lab</span>
+                <span class="brand-sub">DocuInsight</span>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    st.markdown("### ⚙️ Configuración")
+    st.markdown('<div class="sidebar-section-label">Configuración</div>', unsafe_allow_html=True)
     use_mock = st.toggle(
         "Usar modelos mock",
         value=True,
@@ -294,15 +381,41 @@ with st.sidebar:
         ),
     )
 
-    st.divider()
-
-    st.markdown("### 📋 Tipos documentales")
-    for dt in [DocType.CEDULA, DocType.CAMARA_COMERCIO, DocType.RUT, DocType.POLIZA]:
-        st.markdown(f"- {DOC_TYPE_LABELS[dt]}")
-
-    st.divider()
+    st.markdown('<div class="sidebar-section-label">Estado del lote</div>', unsafe_allow_html=True)
+    mode_badge = "badge-on" if use_mock else "badge-off"
+    mode_text = "Mock" if use_mock else "Real"
+    n_results = len(st.session_state.results)
+    n_errors = sum(1 for r in st.session_state.results if r.error)
+    last_at = (
+        st.session_state.processed_at.strftime("%H:%M")
+        if st.session_state.processed_at else "—"
+    )
+    st.markdown(
+        f"""
+        <div class="sidebar-status">
+            <div class="status-row">
+                <span>Pipeline</span>
+                <span class="{mode_badge}">{mode_text}</span>
+            </div>
+            <div class="status-row">
+                <span>Documentos procesados</span>
+                <span><strong>{n_results}</strong></span>
+            </div>
+            <div class="status-row">
+                <span>Con error</span>
+                <span><strong>{n_errors}</strong></span>
+            </div>
+            <div class="status-row">
+                <span>Último procesamiento</span>
+                <span><strong>{last_at}</strong></span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     if st.session_state.results:
+        st.markdown('<div style="margin-top:1rem;"></div>', unsafe_allow_html=True)
         if st.button("🗑️ Limpiar resultados", use_container_width=True):
             st.session_state.results = []
             st.session_state.processed_at = None
@@ -315,9 +428,12 @@ with st.sidebar:
 
 st.markdown(
     """
-    <div class="main-header">
-        <h1>DocuInsight</h1>
-        <p>Clasificación inteligente y extracción de entidades documentales</p>
+    <div class="page-header">
+        <div>
+            <div class="accent-bar"></div>
+            <h1>DocuInsight</h1>
+            <p>Clasificación inteligente y extracción de entidades documentales</p>
+        </div>
     </div>
     """,
     unsafe_allow_html=True,
