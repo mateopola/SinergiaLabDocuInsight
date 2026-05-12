@@ -90,38 +90,77 @@ LIGHT_BG = "#FFF4F4"       # crema del fondo del logo
 st.markdown(
     f"""
     <style>
+        /* Reducir padding superior para que header y sidebar-brand arranquen al tope */
+        [data-testid="stHeader"] {{
+            background: transparent;
+            height: 0;
+        }}
+        .block-container {{
+            padding-top: 1.5rem !important;
+            padding-bottom: 3rem !important;
+        }}
+        section[data-testid="stSidebar"] > div:first-child {{
+            padding-top: 0 !important;
+        }}
+        section[data-testid="stSidebar"] {{
+            background-color: {LIGHT_BG};
+        }}
+
+        /* Bloque de marca en el tope del sidebar */
+        .sidebar-brand {{
+            background: linear-gradient(135deg, {PRIMARY} 0%, {PRIMARY_DARK} 100%);
+            margin: 0 -1rem 1.25rem -1rem;
+            padding: 2.25rem 1rem 1.25rem 1rem;
+            text-align: center;
+            box-shadow: 0 4px 14px rgba(12, 116, 200, 0.18);
+        }}
+        .sidebar-brand img {{
+            height: 68px;
+            width: 68px;
+            background: white;
+            padding: 6px;
+            border-radius: 0.6rem;
+            display: block;
+            margin: 0 auto 0.65rem auto;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+        }}
+        .sidebar-brand .brand-name {{
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 0.02em;
+            margin: 0;
+        }}
+        .sidebar-brand .brand-sub {{
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin: 0.3rem 0 0 0;
+        }}
+
+        /* Header principal — sin logo (ya está en sidebar), alineado con sidebar-brand */
         .main-header {{
             background: linear-gradient(135deg, {PRIMARY} 0%, {PRIMARY_DARK} 100%);
             color: white;
-            padding: 1.5rem 2rem;
-            border-radius: 0.75rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 14px rgba(12, 116, 200, 0.22);
-            display: flex;
-            align-items: center;
-            gap: 1.25rem;
-        }}
-        .main-header img.brand-logo {{
-            height: 72px;
-            width: 72px;
-            background: white;
-            padding: 6px;
-            border-radius: 0.5rem;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-            flex-shrink: 0;
+            padding: 2rem 2rem 1.5rem 2rem;
+            border-radius: 0.6rem;
+            margin: 0 0 1.5rem 0;
+            box-shadow: 0 4px 14px rgba(12, 116, 200, 0.18);
         }}
         .main-header h1 {{
             color: white !important;
             margin: 0;
-            font-weight: 600;
-            font-size: 2rem;
-            line-height: 1.15;
+            font-weight: 700;
+            font-size: 1.9rem;
+            line-height: 1.1;
         }}
         .main-header p {{
-            color: rgba(255, 255, 255, 0.94);
-            margin: 0.25rem 0 0 0;
+            color: rgba(255, 255, 255, 0.92);
+            margin: 0.4rem 0 0 0;
             font-size: 1rem;
         }}
+
         .stButton > button[kind="primary"] {{
             background-color: {PRIMARY};
             color: white;
@@ -132,9 +171,6 @@ st.markdown(
             background-color: {ACCENT};
             color: white;
             border: none;
-        }}
-        section[data-testid="stSidebar"] {{
-            background-color: {LIGHT_BG};
         }}
         .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {{
             color: {PRIMARY};
@@ -237,6 +273,17 @@ if "processed_at" not in st.session_state:
 # ============================================================================
 
 with st.sidebar:
+    st.markdown(
+        f"""
+        <div class="sidebar-brand">
+            <img src="data:image/png;base64,{_logo_b64()}" alt="SinergIA Lab"/>
+            <div class="brand-name">SinergIA Lab</div>
+            <div class="brand-sub">DocuInsight v0.1</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.markdown("### ⚙️ Configuración")
     use_mock = st.toggle(
         "Usar modelos mock",
@@ -261,26 +308,16 @@ with st.sidebar:
             st.session_state.processed_at = None
             st.rerun()
 
-    st.markdown(
-        "<div style='text-align:center; color:#888; font-size:0.8rem; margin-top:2rem;'>"
-        "DocuInsight v0.1<br>SinergIA Lab"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
 
 # ============================================================================
 # HEADER
 # ============================================================================
 
 st.markdown(
-    f"""
+    """
     <div class="main-header">
-        <img class="brand-logo" src="data:image/png;base64,{_logo_b64()}" alt="SinergIA Lab"/>
-        <div>
-            <h1>DocuInsight</h1>
-            <p>Clasificación inteligente y extracción de entidades documentales · SinergIA Lab</p>
-        </div>
+        <h1>DocuInsight</h1>
+        <p>Clasificación inteligente y extracción de entidades documentales</p>
     </div>
     """,
     unsafe_allow_html=True,
