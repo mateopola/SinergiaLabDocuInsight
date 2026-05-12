@@ -96,10 +96,13 @@ st.markdown(
                          "Helvetica Neue", Arial, sans-serif;
         }}
 
-        /* Header de Streamlit Cloud transparente para no pintar franja */
+        /* Barra superior — firma de marca azul→naranja en todo el ancho */
         [data-testid="stHeader"] {{
-            background: transparent;
-            height: 0;
+            background: linear-gradient(90deg, {PRIMARY} 0%, {ACCENT} 100%);
+            height: 4px;
+        }}
+        [data-testid="stToolbar"] {{
+            display: none;
         }}
         .block-container {{
             padding-top: 2rem !important;
@@ -272,7 +275,7 @@ st.markdown(
             box-shadow: 0 2px 6px rgba(12, 116, 200, 0.3);
         }}
 
-        /* === Tabs más prominentes === */
+        /* === Tabs con indicador gradiente azul→naranja === */
         .stTabs [data-baseweb="tab-list"] {{
             gap: 0.5rem;
             border-bottom: 1px solid #E5E7EB;
@@ -286,8 +289,21 @@ st.markdown(
             font-weight: 600;
         }}
         .stTabs [data-baseweb="tab-highlight"] {{
-            background-color: {PRIMARY};
+            background: linear-gradient(90deg, {PRIMARY} 0%, {ACCENT} 100%) !important;
             height: 3px;
+        }}
+
+        /* === Divisores con gradiente sutil de marca === */
+        [data-testid="stDivider"] hr,
+        .block-container hr {{
+            border: none !important;
+            height: 1px !important;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                {PRIMARY} 25%,
+                {ACCENT} 75%,
+                transparent 100%) !important;
+            margin: 1.5rem 0 !important;
         }}
         .doctype-grid {{
             display: grid;
