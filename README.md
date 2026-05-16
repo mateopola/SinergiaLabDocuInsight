@@ -84,10 +84,10 @@ Donde `DocumentResult` (ver `schemas.py`) contiene:
 
 Ver `EXPECTED_ENTITIES` en `schemas.py`. Resumen:
 
-- **Cédula:** nombres, apellidos, número, fechas y lugares de nacimiento/expedición, sexo.
-- **Cámara de Comercio:** razón social, NIT, matrícula, representante legal, domicilio, objeto social, capital, vigencia.
-- **RUT:** NIT, razón social, dirección, ciudad, CIIU, responsabilidades, fecha de generación.
-- **Póliza:** aseguradora, tomador, asegurado, beneficiario, número, ramo, vigencias, valor asegurado, prima, amparos.
+- **Cédula:** nombres, apellidos, número, lugar y fecha de expedición.
+- **Cámara de Comercio:** razón social, NIT, número de matrícula, fecha de constitución, representante legal.
+- **RUT:** NIT, razón social, dirección principal, actividad económica (CIIU).
+- **Póliza:** entidad asegurada, tomador, prima, número de póliza.
 
 ### Integración
 

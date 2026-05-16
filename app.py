@@ -45,10 +45,10 @@ DOC_TYPE_ICONS = {
 }
 
 DOC_TYPE_DESCRIPTIONS = {
-    DocType.CEDULA: "Identificación personal: nombres, apellidos, número, fechas.",
-    DocType.CAMARA_COMERCIO: "Información societaria: razón social, NIT, representante.",
-    DocType.RUT: "Registro tributario: NIT, CIIU, responsabilidades.",
-    DocType.POLIZA: "Pólizas de seguros: aseguradora, tomador, vigencias, prima.",
+    DocType.CEDULA: "Nombre, apellido, número, lugar y fecha de expedición.",
+    DocType.CAMARA_COMERCIO: "Razón social, NIT, matrícula, constitución y representante legal.",
+    DocType.RUT: "NIT, razón social, dirección principal y actividad económica.",
+    DocType.POLIZA: "Entidad asegurada, tomador, prima y número de póliza.",
 }
 
 
