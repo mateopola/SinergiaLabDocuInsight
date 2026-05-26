@@ -14,8 +14,52 @@ from __future__ import annotations
 import base64
 import json
 import os
+import textwrap
 from datetime import datetime
 from pathlib import Path
+
+# Estabilizar threading en CPU Windows: torch (GLiNER) + paddle pelean por
+# threads y el segundo en cargar puede dar inestabilidad. Forzar single
+# thread antes de cualquier import pesado.
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+
+# SSL: configuramos el bundle de `certifi` para descargas legitimas (HuggingFace
+# y otros). Pero PaddleOCR descarga sus modelos de `paddleocr.bj.bcebos.com`
+# (Baidu Cloud) que usa CAs que certifi no incluye. Como fallback para dev local
+# (server corriendo en localhost), deshabilitamos la verificacion SSL global.
+#
+# IMPORTANTE: para deploy en produccion, descargar manualmente los modelos de
+# PaddleOCR a ~/.paddleocr/whl/{det,rec,cls}/ y quitar este monkey-patch.
+try:
+    import certifi as _certifi
+    os.environ.setdefault("SSL_CERT_FILE", _certifi.where())
+    os.environ.setdefault("REQUESTS_CA_BUNDLE", _certifi.where())
+    os.environ.setdefault("CURL_CA_BUNDLE", _certifi.where())
+except ImportError:
+    pass
+
+import ssl as _ssl
+_ssl._create_default_https_context = _ssl._create_unverified_context
+
+# Silenciar warnings de urllib3 sobre unverified HTTPS (espera, los queremos
+# acallar solo para la descarga inicial de Paddle; el resto del trafico SSL
+# del proceso tambien queda sin verificar pero es server local).
+import urllib3 as _urllib3
+_urllib3.disable_warnings(_urllib3.exceptions.InsecureRequestWarning)
+
+
+def _h(html: str) -> str:
+    """
+    Sanitiza HTML multilinea para st.markdown(unsafe_allow_html=True).
+
+    Streamlit usa CommonMark, que interpreta lineas con 4+ espacios al
+    inicio como bloque de codigo y muestra el HTML como texto literal.
+    Esta funcion quita indentacion comun y trim para evitar el bug.
+    """
+    return textwrap.dedent(html).strip()
 
 import pandas as pd
 import plotly.express as px
@@ -1049,91 +1093,61 @@ if "last_result" not in st.session_state:
 n_processed = len(st.session_state.history)
 n_total_entities = sum(len(r.entities) for r in st.session_state.history if not r.error)
 
-st.markdown(
-    f"""
-    <div class="brand-strip"></div>
-    <nav class="navbar">
-        <div class="navbar-inner">
-            <a class="navbar-brand" href="{LANDING_URL}" target="_self">
-                <img src="data:image/png;base64,{_logo_b64()}" alt="SinergIA Lab"/>
-                <div>
-                    <div class="brand-name">SinergIA Lab</div>
-                    <div class="brand-sub">DocuInsight</div>
-                </div>
-            </a>
-            <div class="navbar-center">
-                <span class="stat-item">{icon("layers", 14, PRIMARY)} <span><strong>4</strong> tipologías</span></span>
-                <span class="stat-item">{icon("tag", 14, PRIMARY)} <span><strong>{TOTAL_FIELDS}</strong> campos</span></span>
-                <span class="stat-item">{icon("target", 14, PRIMARY)} <span><strong>{PM['accuracy']:.0%}</strong> accuracy</span></span>
-            </div>
-            <div class="navbar-actions">
-                <span class="navbar-status">
-                    <span class="dot"></span>
-                    Plataforma operativa
-                </span>
-                <a class="navbar-back" href="{LANDING_URL}" target="_self">
-                    {icon("chevron-left", 14, "currentColor")} <span>Sitio web</span>
-                </a>
-            </div>
-        </div>
-    </nav>
-    """,
-    unsafe_allow_html=True,
-)
+st.markdown(_h(f"""
+<div class="brand-strip"></div>
+<nav class="navbar">
+<div class="navbar-inner">
+<a class="navbar-brand" href="{LANDING_URL}" target="_self">
+<img src="data:image/png;base64,{_logo_b64()}" alt="SinergIA Lab"/>
+<div>
+<div class="brand-name">SinergIA Lab</div>
+<div class="brand-sub">DocuInsight</div>
+</div>
+</a>
+<div class="navbar-center">
+<span class="stat-item">{icon("layers", 14, PRIMARY)} <span><strong>4</strong> tipologías</span></span>
+<span class="stat-item">{icon("tag", 14, PRIMARY)} <span><strong>{TOTAL_FIELDS}</strong> campos</span></span>
+<span class="stat-item">{icon("target", 14, PRIMARY)} <span><strong>{PM['accuracy']:.0%}</strong> accuracy</span></span>
+</div>
+<div class="navbar-actions">
+<span class="navbar-status"><span class="dot"></span>Plataforma operativa</span>
+<a class="navbar-back" href="{LANDING_URL}" target="_self">{icon("chevron-left", 14, "currentColor")} <span>Sitio web</span></a>
+</div>
+</div>
+</nav>
+"""), unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
 # App header con capability strip
 # ---------------------------------------------------------------------------
 
-st.markdown(
-    f"""
-    <div class="app-header">
-        <div class="accent-bar"></div>
-        <h1>Centro de <span class="gradient-text">inteligencia documental</span></h1>
-        <p>Procesamiento masivo de documentos con clasificación automática, OCR híbrido y extracción de entidades estructuradas para operaciones enterprise.</p>
-
-        <div class="capability-strip">
-            <div class="cap-item">
-                <div class="ic">{icon("layers", 18, PRIMARY)}</div>
-                <div class="body">
-                    <div class="value">4 tipologías</div>
-                    <div class="label">Cédula · CC · RUT · Póliza</div>
-                </div>
-            </div>
-            <div class="cap-item">
-                <div class="ic">{icon("tag", 18, PRIMARY)}</div>
-                <div class="body">
-                    <div class="value">{TOTAL_FIELDS} campos</div>
-                    <div class="label">Extracción NER + regex</div>
-                </div>
-            </div>
-            <div class="cap-item">
-                <div class="ic">{icon("target", 18, PRIMARY)}</div>
-                <div class="body">
-                    <div class="value">{PM['accuracy']:.1%}</div>
-                    <div class="label">Accuracy en clasificación</div>
-                </div>
-            </div>
-            <div class="cap-item">
-                <div class="ic">{icon("cpu", 18, PRIMARY)}</div>
-                <div class="body">
-                    <div class="value">OCR híbrido</div>
-                    <div class="label">PyMuPDF + EasyOCR</div>
-                </div>
-            </div>
-            <div class="cap-item">
-                <div class="ic">{icon("infinity", 18, PRIMARY)}</div>
-                <div class="body">
-                    <div class="value">Escalable</div>
-                    <div class="label">Miles de documentos</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
+_header_html = (
+    '<div class="app-header">'
+    '<div class="accent-bar"></div>'
+    '<h1>Centro de <span class="gradient-text">inteligencia documental</span></h1>'
+    '<p>Procesamiento masivo de documentos con clasificación automática, OCR híbrido '
+    'y extracción de entidades estructuradas para operaciones enterprise.</p>'
+    '<div class="capability-strip">'
+        f'<div class="cap-item"><div class="ic">{icon("layers", 18, PRIMARY)}</div>'
+            '<div class="body"><div class="value">4 tipologías</div>'
+            '<div class="label">Cédula · CC · RUT · Póliza</div></div></div>'
+        f'<div class="cap-item"><div class="ic">{icon("tag", 18, PRIMARY)}</div>'
+            f'<div class="body"><div class="value">{TOTAL_FIELDS} campos</div>'
+            '<div class="label">Extracción NER + regex</div></div></div>'
+        f'<div class="cap-item"><div class="ic">{icon("target", 18, PRIMARY)}</div>'
+            f'<div class="body"><div class="value">{PM["accuracy"]:.1%}</div>'
+            '<div class="label">Accuracy en clasificación</div></div></div>'
+        f'<div class="cap-item"><div class="ic">{icon("cpu", 18, PRIMARY)}</div>'
+            '<div class="body"><div class="value">OCR híbrido</div>'
+            '<div class="label">PyMuPDF + EasyOCR</div></div></div>'
+        f'<div class="cap-item"><div class="ic">{icon("infinity", 18, PRIMARY)}</div>'
+            '<div class="body"><div class="value">Escalable</div>'
+            '<div class="label">Miles de documentos</div></div></div>'
+    '</div>'
+    '</div>'
 )
+st.markdown(_header_html, unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
@@ -1161,43 +1175,35 @@ def _entities_table_html(result: DocumentResult) -> str:
 
 def _render_result(result: DocumentResult) -> None:
     if result.error:
-        st.markdown(
-            f"""
-            <div class="result-error">
-                <h3>{icon("x-circle", 20, "#991B1B")} No se pudo procesar el documento</h3>
-                <p><strong>Archivo:</strong> {result.filename}</p>
-                <p style="margin-top:0.5rem;"><strong>Detalle:</strong> {result.error}</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown(_h(f"""
+<div class="result-error">
+<h3>{icon("x-circle", 20, "#991B1B")} No se pudo procesar el documento</h3>
+<p><strong>Archivo:</strong> {result.filename}</p>
+<p style="margin-top:0.5rem;"><strong>Detalle:</strong> {result.error}</p>
+</div>
+"""), unsafe_allow_html=True)
         return
 
     dt_icon = icon(DOC_TYPE_ICON_NAME[result.doc_type], 28, PRIMARY)
     conf = result.doc_type_confidence
     conf_bg, conf_fg = _conf_colors(conf)
 
-    st.markdown(
-        f"""
-        <div class="result-shell">
-            <div class="result-hero">
-                <div class="r-icon">{dt_icon}</div>
-                <div class="r-body">
-                    <div class="r-label">Tipo documental detectado</div>
-                    <div class="r-doctype">{DOC_TYPE_LABELS[result.doc_type]}</div>
-                    <div class="r-filename">{result.filename}</div>
-                </div>
-                <div class="r-conf">
-                    <div class="r-conf-pill" style="background:{conf_bg};color:{conf_fg};">
-                        {conf:.1%}
-                    </div>
-                    <div class="r-conf-label">Confianza</div>
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown(_h(f"""
+<div class="result-shell">
+<div class="result-hero">
+<div class="r-icon">{dt_icon}</div>
+<div class="r-body">
+<div class="r-label">Tipo documental detectado</div>
+<div class="r-doctype">{DOC_TYPE_LABELS[result.doc_type]}</div>
+<div class="r-filename">{result.filename}</div>
+</div>
+<div class="r-conf">
+<div class="r-conf-pill" style="background:{conf_bg};color:{conf_fg};">{conf:.1%}</div>
+<div class="r-conf-label">Confianza</div>
+</div>
+</div>
+</div>
+"""), unsafe_allow_html=True)
 
     high_conf = sum(1 for e in result.entities if e.confidence >= 0.85)
     expected = len(EXPECTED_ENTITIES.get(result.doc_type, []))
@@ -1210,8 +1216,7 @@ def _render_result(result: DocumentResult) -> None:
 
     with col_preview:
         st.markdown(
-            f'<div class="section-title">{icon("file", 14, PRIMARY, klass="ic")} '
-            f'Documento</div>',
+            f'<div class="section-title">{icon("file", 14, PRIMARY, klass="ic")} Documento</div>',
             unsafe_allow_html=True,
         )
         if file_bytes:
@@ -1227,57 +1232,43 @@ def _render_result(result: DocumentResult) -> None:
 
     with col_data:
         st.markdown(
-            f'<div class="section-title">{icon("activity", 14, PRIMARY, klass="ic")} '
-            f'Metricas del procesamiento</div>',
+            f'<div class="section-title">{icon("activity", 14, PRIMARY, klass="ic")} Metricas del procesamiento</div>',
             unsafe_allow_html=True,
         )
         k1, k2 = st.columns(2)
-        k1.markdown(
-            f"""
-            <div class="kpi">
-                <div class="kpi-head">{icon("tag", 14, PRIMARY, klass="ic")} Entidades</div>
-                <div class="kpi-value">{len(result.entities)}<span class="kpi-unit">/ {expected}</span></div>
-                <div class="kpi-sub">{coverage:.0f}% del esquema</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        k2.markdown(
-            f"""
-            <div class="kpi">
-                <div class="kpi-head">{icon("check-circle", 14, PRIMARY, klass="ic")} Alta confianza</div>
-                <div class="kpi-value">{high_conf}<span class="kpi-unit">/ {len(result.entities)}</span></div>
-                <div class="kpi-sub success">campos validados</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        k1.markdown(_h(f"""
+<div class="kpi">
+<div class="kpi-head">{icon("tag", 14, PRIMARY, klass="ic")} Entidades</div>
+<div class="kpi-value">{len(result.entities)}<span class="kpi-unit">/ {expected}</span></div>
+<div class="kpi-sub">{coverage:.0f}% del esquema</div>
+</div>
+"""), unsafe_allow_html=True)
+        k2.markdown(_h(f"""
+<div class="kpi">
+<div class="kpi-head">{icon("check-circle", 14, PRIMARY, klass="ic")} Alta confianza</div>
+<div class="kpi-value">{high_conf}<span class="kpi-unit">/ {len(result.entities)}</span></div>
+<div class="kpi-sub success">campos validados</div>
+</div>
+"""), unsafe_allow_html=True)
         k3, k4 = st.columns(2)
-        k3.markdown(
-            f"""
-            <div class="kpi">
-                <div class="kpi-head">{icon("clock", 14, PRIMARY, klass="ic")} Latencia</div>
-                <div class="kpi-value">{result.processing_time_ms}<span class="kpi-unit">ms</span></div>
-                <div class="kpi-sub">end-to-end</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        k4.markdown(
-            f"""
-            <div class="kpi">
-                <div class="kpi-head">{icon("file-text", 14, PRIMARY, klass="ic")} Texto OCR</div>
-                <div class="kpi-value">{len(result.extracted_text):,}<span class="kpi-unit">chars</span></div>
-                <div class="kpi-sub">tokens extraidos</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        k3.markdown(_h(f"""
+<div class="kpi">
+<div class="kpi-head">{icon("clock", 14, PRIMARY, klass="ic")} Latencia</div>
+<div class="kpi-value">{result.processing_time_ms}<span class="kpi-unit">ms</span></div>
+<div class="kpi-sub">end-to-end</div>
+</div>
+"""), unsafe_allow_html=True)
+        k4.markdown(_h(f"""
+<div class="kpi">
+<div class="kpi-head">{icon("file-text", 14, PRIMARY, klass="ic")} Texto OCR</div>
+<div class="kpi-value">{len(result.extracted_text):,}<span class="kpi-unit">chars</span></div>
+<div class="kpi-sub">tokens extraidos</div>
+</div>
+"""), unsafe_allow_html=True)
 
     # Tabla de entidades full-width abajo de las dos columnas
     st.markdown(
-        f'<div class="section-title">{icon("database", 14, PRIMARY, klass="ic")} '
-        f'Metadatos extraidos '
+        f'<div class="section-title">{icon("database", 14, PRIMARY, klass="ic")} Metadatos extraidos '
         f'<span class="count">{len(result.entities)} campos</span></div>',
         unsafe_allow_html=True,
     )
@@ -1356,61 +1347,44 @@ if active_tab == "dashboard":
 
     # KPIs principales
     c1, c2, c3, c4 = st.columns(4)
-    c1.markdown(
-        f"""
-        <div class="kpi">
-            <div class="kpi-head">{icon("inbox", 14, PRIMARY, klass="ic")} Documentos procesados</div>
-            <div class="kpi-value">{n_total}</div>
-            <div class="kpi-sub">
-                <span style="color:#047857;">{n_ok} ok</span>
-                {f' &middot; <span style="color:#B91C1C;">{n_err} con error</span>' if n_err else ''}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    c2.markdown(
-        f"""
-        <div class="kpi">
-            <div class="kpi-head accent">{icon("database", 14, ACCENT, klass="ic")} Entidades extraídas</div>
-            <div class="kpi-value">{total_entities:,}</div>
-            <div class="kpi-sub">total acumulado en sesión</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    c3.markdown(
-        f"""
-        <div class="kpi">
-            <div class="kpi-head">{icon("clock", 14, PRIMARY, klass="ic")} Latencia promedio</div>
-            <div class="kpi-value">{int(avg_time):,}<span class="kpi-unit">ms</span></div>
-            <div class="kpi-sub">por documento</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    c4.markdown(
-        f"""
-        <div class="kpi">
-            <div class="kpi-head">{icon("target", 14, PRIMARY, klass="ic")} Confianza media</div>
-            <div class="kpi-value">{avg_conf:.1%}</div>
-            <div class="kpi-sub">clasificación correcta</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    err_html = f' &middot; <span style="color:#B91C1C;">{n_err} con error</span>' if n_err else ''
+    c1.markdown(_h(f"""
+<div class="kpi">
+<div class="kpi-head">{icon("inbox", 14, PRIMARY, klass="ic")} Documentos procesados</div>
+<div class="kpi-value">{n_total}</div>
+<div class="kpi-sub"><span style="color:#047857;">{n_ok} ok</span>{err_html}</div>
+</div>
+"""), unsafe_allow_html=True)
+    c2.markdown(_h(f"""
+<div class="kpi">
+<div class="kpi-head accent">{icon("database", 14, ACCENT, klass="ic")} Entidades extraídas</div>
+<div class="kpi-value">{total_entities:,}</div>
+<div class="kpi-sub">total acumulado en sesión</div>
+</div>
+"""), unsafe_allow_html=True)
+    c3.markdown(_h(f"""
+<div class="kpi">
+<div class="kpi-head">{icon("clock", 14, PRIMARY, klass="ic")} Latencia promedio</div>
+<div class="kpi-value">{int(avg_time):,}<span class="kpi-unit">ms</span></div>
+<div class="kpi-sub">por documento</div>
+</div>
+"""), unsafe_allow_html=True)
+    c4.markdown(_h(f"""
+<div class="kpi">
+<div class="kpi-head">{icon("target", 14, PRIMARY, klass="ic")} Confianza media</div>
+<div class="kpi-value">{avg_conf:.1%}</div>
+<div class="kpi-sub">clasificación correcta</div>
+</div>
+"""), unsafe_allow_html=True)
 
     if not history:
-        st.markdown(
-            f"""
-            <div class="empty-state" style="margin-top:1.5rem;">
-                <div class="ic-wrap">{icon("activity", 28, PRIMARY)}</div>
-                <h3>Aún no hay actividad en esta sesión</h3>
-                <p>El dashboard se llena automáticamente a medida que procesás documentos. Empezá en la pestaña <strong>Procesar</strong>.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown(_h(f"""
+<div class="empty-state" style="margin-top:1.5rem;">
+<div class="ic-wrap">{icon("activity", 28, PRIMARY)}</div>
+<h3>Aún no hay actividad en esta sesión</h3>
+<p>El dashboard se llena automáticamente a medida que procesás documentos. Empezá en la pestaña <strong>Procesar</strong>.</p>
+</div>
+"""), unsafe_allow_html=True)
     elif ok:
         # Charts
         col_pie, col_hist = st.columns([1, 1])
@@ -1509,17 +1483,14 @@ if active_tab == "dashboard":
 # ============================================================================
 
 elif active_tab == "procesar":
-    st.markdown(
-        f"""
-        <div class="upload-shell">
-            <div class="upload-card-header">
-                <h2>{icon("upload", 16, PRIMARY, klass="ic")} Ingestar documento</h2>
-                <p>PDF, PNG o JPG · OCR + clasificación + extracción en tiempo real</p>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown(_h(f"""
+<div class="upload-shell">
+<div class="upload-card-header">
+<h2>{icon("upload", 16, PRIMARY, klass="ic")} Ingestar documento</h2>
+<p>PDF, PNG o JPG · OCR + clasificación + extracción en tiempo real</p>
+</div>
+</div>
+"""), unsafe_allow_html=True)
 
     uploaded = st.file_uploader(
         "Arrastrá el archivo o hacé clic para seleccionar",
@@ -1530,18 +1501,15 @@ elif active_tab == "procesar":
     )
 
     if uploaded:
-        st.markdown(
-            f"""
-            <div class="uploader-aux">
-                <div class="file-chip">
-                    <span class="ic">{icon("file", 18, PRIMARY)}</span>
-                    <span class="name">{uploaded.name}</span>
-                    <span class="size">{uploaded.size / 1024:.1f} KB</span>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown(_h(f"""
+<div class="uploader-aux">
+<div class="file-chip">
+<span class="ic">{icon("file", 18, PRIMARY)}</span>
+<span class="name">{uploaded.name}</span>
+<span class="size">{uploaded.size / 1024:.1f} KB</span>
+</div>
+</div>
+"""), unsafe_allow_html=True)
 
         _, btn_col, _ = st.columns([1, 2, 1])
         with btn_col:
@@ -1587,16 +1555,13 @@ elif active_tab == "procesar":
     if st.session_state.last_result is not None:
         _render_result(st.session_state.last_result)
     elif not uploaded:
-        st.markdown(
-            f"""
-            <div class="empty-state" style="margin-top:1.5rem;">
-                <div class="ic-wrap">{icon("scan", 28, PRIMARY)}</div>
-                <h3>Listo para procesar</h3>
-                <p>Soltá un documento arriba y vas a ver acá el tipo detectado, las entidades extraídas y el JSON estructurado en menos de 3 segundos.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown(_h(f"""
+<div class="empty-state" style="margin-top:1.5rem;">
+<div class="ic-wrap">{icon("scan", 28, PRIMARY)}</div>
+<h3>Listo para procesar</h3>
+<p>Soltá un documento arriba y vas a ver acá el tipo detectado, las entidades extraídas y el JSON estructurado en menos de 3 segundos.</p>
+</div>
+"""), unsafe_allow_html=True)
 
 
 # ============================================================================
@@ -1607,16 +1572,13 @@ elif active_tab == "casos":
     history = st.session_state.history
 
     if not history:
-        st.markdown(
-            f"""
-            <div class="empty-state">
-                <div class="ic-wrap">{icon("folder", 28, PRIMARY)}</div>
-                <h3>No hay casos registrados</h3>
-                <p>Cada documento procesado queda registrado acá durante la sesión. Una vez integrado a la base de datos persistirán entre sesiones.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown(_h(f"""
+<div class="empty-state">
+<div class="ic-wrap">{icon("folder", 28, PRIMARY)}</div>
+<h3>No hay casos registrados</h3>
+<p>Cada documento procesado queda registrado acá durante la sesión. Una vez integrado a la base de datos persistirán entre sesiones.</p>
+</div>
+"""), unsafe_allow_html=True)
     else:
         # Toolbar
         col_filter, col_dl, col_clear = st.columns([2, 1, 1])
@@ -1695,20 +1657,17 @@ elif active_tab == "casos":
                 )
 
             # Row visual (full HTML control)
-            st.markdown(
-                f"""
-                <div class="case-row">
-                    <div class="c-icon{ic_cls}">{ic}</div>
-                    <div class="c-body">
-                        <div class="c-name">{result.filename}</div>
-                        <div class="c-meta">{meta_html}</div>
-                    </div>
-                    {ent_count_html}
-                    {pill_html}
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            st.markdown(_h(f"""
+<div class="case-row">
+<div class="c-icon{ic_cls}">{ic}</div>
+<div class="c-body">
+<div class="c-name">{result.filename}</div>
+<div class="c-meta">{meta_html}</div>
+</div>
+{ent_count_html}
+{pill_html}
+</div>
+"""), unsafe_allow_html=True)
 
             # Detalle expandible (separado del row visual de arriba — Streamlit limitation)
             with st.expander("Ver detalle", expanded=False):

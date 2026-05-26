@@ -27,3 +27,18 @@ Thumbs.db
 # Salidas locales
 *.xlsx
 *.log
+
+# Modelos serializados (~4.4 GB) — distribuir por canal aparte
+models/
+
+# Cache de PaddleOCR copiado para el docker build (solo se usa en build, no
+# se commitea — son 16 MB pero el repo se vuelve mas confuso)
+paddle_cache/
+
+# Datos sensibles del cliente (PDFs/DOCX/MP4 con info real)
+Insumos documentales/
+samples/
+
+# Node modules del dashboard (regenerables)
+dashboard/node_modules/
+

@@ -1,0 +1,67 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Streamlit local
+.streamlit/secrets.toml
+
+# Logs / outputs locales (no van a produccion)
+*.log
+batch_test_*.xlsx
+db_states.json
+
+# Artefactos de agentes / caches
+.agents/
+
+# Sample docs locales (no se incluyen en la imagen)
+rut.pdf
+"Insumos documentales/"
+"Proceso de inteligencia documetal.pdf"
+
+# Dashboard separado en /dashboard (n8n+Supabase, no es la app Streamlit)
+dashboard/
+
+# Archivos sueltos del dashboard viejo (no son de la app Streamlit)
+index.html
+app.js
+chart.js
+styles.css
+seed.js
+check_db_states.js
+migration_add_columns.sql
+package.json
+package-lock.json
+node_modules/
+logo_sinergia_optimized.png
+docker-compose.yml
+
+# Landing comercial (publicada en GitHub Pages, no en la app)
+docs/
+
+# Planes y documentacion no necesaria en runtime
+PLAN_DISENO.md
+README.md
+
+# Scripts de testing local
+batch_test.py
+mock_models.py
