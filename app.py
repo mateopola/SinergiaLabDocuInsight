@@ -26,6 +26,12 @@ os.environ.setdefault("MKL_NUM_THREADS", "1")
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
+# protobuf 7.x (traido por otras libs) rompe los _pb2 de PaddlePaddle 2.6
+# ("Descriptors cannot be created directly"). Forzar la implementacion pura
+# Python de protobuf evita el conflicto. DEBE setearse antes de importar
+# cualquier cosa que cargue protobuf (transformers/gliner/paddle).
+os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
+
 # SSL: configuramos el bundle de `certifi` para descargas legitimas (HuggingFace
 # y otros). Pero PaddleOCR descarga sus modelos de `paddleocr.bj.bcebos.com`
 # (Baidu Cloud) que usa CAs que certifi no incluye. Como fallback para dev local

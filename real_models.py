@@ -11,8 +11,14 @@ a traves del singleton del pipeline).
 """
 from __future__ import annotations
 
+import os
 import time
 from pathlib import Path
+
+# protobuf 7.x rompe los _pb2 de PaddlePaddle 2.6. Forzar impl pura Python
+# antes de que cualquier import (gliner/transformers/paddle) cargue protobuf.
+# Cubre el path standalone (importar RealPipeline sin pasar por app.py).
+os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
 
 from schemas import DocType, DocumentResult, Entity
 from pipeline_utils.classifier import DocumentClassifier
