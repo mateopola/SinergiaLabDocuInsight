@@ -2,9 +2,9 @@
 Pipeline real de DocuInsight.
 
 Orquesta:
-  1. OCR (PyMuPDF para digitales, EasyOCR para escaneados)
+  1. OCR (PyMuPDF para digitales, PaddleOCR para escaneados)
   2. Clasificacion (C-1 TF-IDF + Regresion Logistica, Fase 3.0)
-  3. NER por tipologia (CRF para CC, spaCy+CNN para CED/POL/RUT — Fase 3.1)
+  3. NER por tipologia (GLiNER fine-tuned, 4 modelos -- Fase 3.1, nb24)
 
 La carga de modelos ocurre 1 sola vez en __init__ (cacheada por Streamlit
 a traves del singleton del pipeline).
@@ -48,7 +48,7 @@ class RealPipeline:
     def process(self, file_bytes: bytes, filename: str) -> DocumentResult:
         start = time.time()
         try:
-            # 1. OCR / extraccion de texto (PyMuPDF si digital, EasyOCR si no)
+            # 1. OCR / extraccion de texto (PyMuPDF si digital, PaddleOCR si no)
             text, engine = extract_text(file_bytes, filename)
             if not text or not text.strip():
                 return DocumentResult(
@@ -69,9 +69,9 @@ class RealPipeline:
             # 2.5. Re-OCR forzado para RUT digital.
             # El formulario DIAN tiene el NIT/CIIU en cajas individuales por
             # digito; PyMuPDF las extrae como tokens sueltos ("0 2", "1 8")
-            # que rompen al modelo NER. EasyOCR lee en orden visual y produce
-            # la distribucion de tokens que vio el training. ~30-60s extra
-            # por RUT digital, pero el output es usable.
+            # que rompen al modelo NER. PaddleOCR lee en orden visual y produce
+            # la distribucion de tokens que vio el training de los 4 GLiNER.
+            # ~30-60s extra por RUT digital, pero el output es usable.
             if doc_type == DocType.RUT and engine == "pymupdf":
                 text, engine = extract_text(file_bytes, filename, force_ocr=True)
 

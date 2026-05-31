@@ -18,6 +18,7 @@ VERSION 2 (2026-05-24): migrado de EasyOCR a PaddleOCR por dos razones:
 from __future__ import annotations
 
 import io
+import re
 from typing import Optional
 
 # Limite de paginas alineado con el dataset de entrenamiento
@@ -47,13 +48,13 @@ def extract_text(file_bytes: bytes, filename: str, force_ocr: bool = False) -> t
         if not force_ocr:
             text, _ = _try_pymupdf(file_bytes)
             if text and _looks_extractable(text):
-                return text, "pymupdf"
+                return _normalizar_texto(text), "pymupdf"
         # PDF escaneado, sin texto, o re-procesamiento forzado
         ocr_text = _ocr_pdf_with_paddle(file_bytes)
-        return ocr_text, "paddleocr"
+        return _normalizar_texto(ocr_text), "paddleocr"
 
     if is_image:
-        return _ocr_image_bytes_with_paddle(file_bytes), "paddleocr"
+        return _normalizar_texto(_ocr_image_bytes_with_paddle(file_bytes)), "paddleocr"
 
     raise ValueError(f"Formato no soportado: {filename}")
 
@@ -194,3 +195,78 @@ def _ocr_pdf_with_paddle(pdf_bytes: bytes) -> str:
             "El PDF puede estar danado o totalmente en blanco."
         )
     return "\n\n".join(pages_text)
+
+
+# ---------------------------------------------------------------------------
+# Normalizacion del texto OCR
+# ---------------------------------------------------------------------------
+# Alinea el texto de inferencia con el dataset de training de los modelos
+# (clasificador C-1 y los 4 GLiNER fueron entrenados sobre texto normalizado
+# con estas mismas reglas).
+#
+# Reglas:
+#   - Bloque de digitos individuales consecutivos -> unir (NIT/cedula)
+#   - Indices de fila DIAN secuenciales (1,2,3,...) -> eliminar
+#   - Numeros cortos sueltos en contexto de tabla -> descartar
+#   - Digitos separados por espacios en la misma linea -> unir
+#   - Espacios multiples -> uno; espacios antes de puntuacion -> limpios
+#   - Mas de 2 saltos -> 1 linea en blanco
+# ---------------------------------------------------------------------------
+
+def _normalizar_texto(texto: str) -> str:
+    if not texto:
+        return texto
+
+    lineas = texto.splitlines()
+    resultado: list[str] = []
+    i = 0
+    while i < len(lineas):
+        linea = lineas[i].strip()
+
+        # Bloque de digitos individuales consecutivos
+        if re.match(r"^\d$", linea):
+            bloque = [linea]
+            j = i + 1
+            while j < len(lineas) and re.match(r"^\d$", lineas[j].strip()):
+                bloque.append(lineas[j].strip())
+                j += 1
+            if len(bloque) >= 4:
+                nums = [int(d) for d in bloque]
+                es_secuencial = all(nums[k + 1] == nums[k] + 1 for k in range(len(nums) - 1))
+                if es_secuencial:
+                    i = j   # indices de fila DIAN -> descartar
+                    continue
+                resultado.append("".join(bloque))   # NIT/cedula -> unir
+                i = j
+                continue
+
+        # Numero corto suelto en contexto de tabla -> descartar
+        if re.match(r"^\d{1,2}$", linea):
+            num = int(linea)
+            if 1 <= num <= 99:
+                prev = resultado[-1].strip() if resultado else ""
+                sig = lineas[i + 1].strip() if i + 1 < len(lineas) else ""
+                if (re.match(r"^\d{1,2}$", prev) or re.match(r"^\d{1,2}$", sig) or
+                        re.match(r"^\d{1,3}\.", prev) or re.match(r"^\d{1,3}\.", sig)):
+                    i += 1
+                    continue
+
+        # Digitos separados por espacios en la misma linea -> unir
+        linea = re.sub(
+            r"(?<!\w)(\d[\d \.\-]{4,})(?!\w)",
+            lambda m: re.sub(r"\s+", "", m.group()),
+            linea,
+        )
+        linea = re.sub(r" {2,}", " ", linea)
+        linea = re.sub(r" ([,;:\.\)\]])", r"\1", linea)
+        linea = linea.strip()
+
+        if linea:
+            resultado.append(linea)
+        elif resultado and resultado[-1] != "":
+            resultado.append("")
+        i += 1
+
+    out = "\n".join(resultado)
+    out = re.sub(r"\n{3,}", "\n\n", out)
+    return out.strip()
