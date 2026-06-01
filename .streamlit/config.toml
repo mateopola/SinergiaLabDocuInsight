@@ -8,3 +8,10 @@ font = "sans serif"
 
 [browser]
 gatherUsageStats = false
+
+[server]
+# Detras del proxy/iframe de HF Spaces, la proteccion XSRF de Streamlit
+# rechaza el POST del file_uploader con 403 (AxiosError 403). Desactivarla
+# (y CORS) permite que la subida de archivos funcione en el Space.
+enableXsrfProtection = false
+enableCORS = false
