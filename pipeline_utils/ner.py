@@ -42,22 +42,36 @@ DEFAULT_THRESHOLDS: dict[str, float] = {
 class GLiNERExtractor:
     """Extractor NER usando GLiNER fine-tuned (uno por tipologia).
 
-    Lazy-loads el modelo en disco; thread-unsafe pero el pipeline de
-    DocuInsight es single-threaded por request.
+    Carga LAZY: el modelo (~1.1 GB) se carga del disco la PRIMERA vez que se
+    llama a extract(), no en __init__. Asi el dispatcher puede instanciar los 4
+    extractores sin gastar ~4.4 GB de RAM ni ~4 min de arranque -- solo se
+    cargan los modelos de las tipologias que realmente se procesan.
+
+    Thread-unsafe, pero el pipeline de DocuInsight es single-threaded por request.
     """
 
     def __init__(self, model_dir: Path, doctype: str, threshold: float):
-        from gliner import GLiNER
+        # Validacion barata (fail-fast) sin cargar pesos.
         if not model_dir.exists():
             raise FileNotFoundError(
                 f"No se encontro el modelo GLiNER en {model_dir}. "
-                "Bajalo desde Google Drive (ver README en streamlit_app o "
-                "el plan de integracion)."
+                "Bajalo desde Google Drive (ver deploy/README o el plan de "
+                "integracion)."
             )
-        self.model = GLiNER.from_pretrained(str(model_dir), local_files_only=True)
+        self.model_dir = model_dir
         self.doctype = doctype
         self.threshold = threshold
         self.labels = GLINER_LABELS_BY_DOCTYPE[doctype]
+        self.model = None  # se carga lazy en _ensure_loaded()
+
+    def _ensure_loaded(self):
+        """Carga el modelo en la primera invocacion (idempotente)."""
+        if self.model is None:
+            from gliner import GLiNER
+            self.model = GLiNER.from_pretrained(
+                str(self.model_dir), local_files_only=True
+            )
+        return self.model
 
     def extract(self, text: str, doctype: str) -> list[ExtractedEntity]:
         # Nota: `doctype` se pasa por consistencia con la firma anterior
@@ -72,7 +86,8 @@ class GLiNERExtractor:
         if not text or not text.strip():
             return []
 
-        raw = self.model.predict_entities(text, self.labels, threshold=self.threshold)
+        model = self._ensure_loaded()
+        raw = model.predict_entities(text, self.labels, threshold=self.threshold)
 
         # Mapear a ExtractedEntity. Si el mismo (label, value) aparece varias
         # veces, nos quedamos con el de mayor score (es informativo para la UI;
@@ -97,7 +112,11 @@ class GLiNERExtractor:
 
 class NERDispatcher:
     """
-    Carga los 4 extractores GLiNER (uno por tipologia) y enruta segun doctype.
+    Instancia los 4 extractores GLiNER (uno por tipologia) y enruta segun
+    doctype. Los modelos NO se cargan aca: cada GLiNERExtractor es lazy y
+    carga su modelo (~1.1 GB) la primera vez que recibe un documento de su
+    tipologia. En la practica un usuario que sube solo cedulas nunca paga el
+    costo de cargar los modelos de RUT/CC/POL.
 
     Layout esperado en disco:
         models/ner/gliner/cc/
