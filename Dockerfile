@@ -43,10 +43,10 @@ COPY .streamlit/ ./.streamlit/
 # El .dockerignore preserva models/ pero excluye otros directorios pesados.
 COPY models/ ./models/
 
-# Pre-cachear modelos PaddleOCR para no depender de descarga en runtime.
-# Si la carpeta local ~/.paddleocr/whl/ existe se copia, sino se intenta bajar
-# durante el build (con curl -k para skip SSL).
-COPY paddle_cache/ /root/.paddleocr/
+# Modelos de PaddleOCR (~16 MB): NO se bakean. Se descargan en el primer
+# request (PaddleOCR los baja solo). En HF Spaces / Azure hay internet, y
+# app.py ya maneja el SSL del CDN de Paddle. Esto evita depender de una
+# carpeta paddle_cache/ local en el contexto de build.
 
 # Threading: forzar single-thread para que torch (GLiNER) y paddle no peleen.
 # protobuf: pure-python para que los _pb2 de PaddlePaddle 2.6 no choquen con
