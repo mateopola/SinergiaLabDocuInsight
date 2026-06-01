@@ -146,6 +146,14 @@ class NERDispatcher:
         thresholds: dict[str, float] | None = None,
         single_model_ram: bool | None = None,
     ):
+        # IMPORTANTE (Windows): cargar las DLLs de torch ANTES de que cualquier
+        # OCR cargue paddle. Si paddle se importa primero, el import de torch
+        # falla con "shm.dll WinError 127". El pipeline construye el
+        # NERDispatcher antes del primer process()/OCR, asi que importar torch
+        # aca fija el orden correcto. NO carga los modelos GLiNER (eso sigue
+        # siendo lazy) -- solo trae las librerias nativas.
+        import torch  # noqa: F401
+
         thresholds = thresholds or DEFAULT_THRESHOLDS
         # Si no se pasa explicito, usar la config global (env SINGLE_MODEL_RAM).
         self.single_model_ram = (
