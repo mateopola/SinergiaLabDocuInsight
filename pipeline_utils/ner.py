@@ -29,6 +29,13 @@ from .label_mapping import GLINER_LABELS_BY_DOCTYPE, to_ui_label
 # tipologias. Para servidores con RAM holgada, exportar SINGLE_MODEL_RAM=0.
 SINGLE_MODEL_RAM = os.environ.get("SINGLE_MODEL_RAM", "1") == "1"
 
+# Repo de modelos en HF Hub para descarga en runtime. Si los modelos no estan
+# en disco local (caso deploy: el Space no bakea los 4.4 GB), se bajan de aca
+# de forma lazy -- solo la subcarpeta de la tipologia que se procesa. La
+# estructura esperada del repo es: {cc,ced,pol,rut}/<archivos del modelo>.
+# Vacio = no descargar (modo local, los modelos deben estar en disco).
+GLINER_HUB_REPO = os.environ.get("GLINER_HUB_REPO", "")
+
 
 @dataclass(frozen=True)
 class ExtractedEntity:
@@ -60,26 +67,41 @@ class GLiNERExtractor:
     """
 
     def __init__(self, model_dir: Path, doctype: str, threshold: float):
-        # Validacion barata (fail-fast) sin cargar pesos.
-        if not model_dir.exists():
-            raise FileNotFoundError(
-                f"No se encontro el modelo GLiNER en {model_dir}. "
-                "Bajalo desde Google Drive (ver deploy/README o el plan de "
-                "integracion)."
-            )
+        # NO exigimos que exista local: si falta, se baja del Hub en runtime
+        # (ver _resolve_model_path). model_dir.name es la subcarpeta de la
+        # tipologia en el repo del Hub ('cc','ced','pol','rut').
         self.model_dir = model_dir
+        self.hub_subdir = model_dir.name
         self.doctype = doctype
         self.threshold = threshold
         self.labels = GLINER_LABELS_BY_DOCTYPE[doctype]
         self.model = None  # se carga lazy en _ensure_loaded()
 
+    def _resolve_model_path(self) -> str:
+        """Devuelve la ruta local del modelo, bajandolo del Hub si hace falta."""
+        if self.model_dir.exists() and any(self.model_dir.iterdir()):
+            return str(self.model_dir)
+        if not GLINER_HUB_REPO:
+            raise FileNotFoundError(
+                f"No hay modelo GLiNER en {self.model_dir} y GLINER_HUB_REPO no "
+                "esta seteado. Copia los modelos a disco o exporta "
+                "GLINER_HUB_REPO=usuario/repo para bajarlos del Hub."
+            )
+        from huggingface_hub import snapshot_download
+        local_root = snapshot_download(
+            repo_id=GLINER_HUB_REPO,
+            allow_patterns=f"{self.hub_subdir}/*",
+        )
+        from pathlib import Path as _P
+        return str(_P(local_root) / self.hub_subdir)
+
     def _ensure_loaded(self):
-        """Carga el modelo en la primera invocacion (idempotente)."""
+        """Carga el modelo en la primera invocacion (idempotente).
+        Si el modelo no esta en disco, lo descarga del Hub primero."""
         if self.model is None:
             from gliner import GLiNER
-            self.model = GLiNER.from_pretrained(
-                str(self.model_dir), local_files_only=True
-            )
+            path = self._resolve_model_path()
+            self.model = GLiNER.from_pretrained(path, local_files_only=True)
         return self.model
 
     def unload(self):

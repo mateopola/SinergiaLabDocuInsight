@@ -39,8 +39,10 @@ COPY pipeline_utils/ ./pipeline_utils/
 COPY assets/ ./assets/
 COPY .streamlit/ ./.streamlit/
 
-# Copiar modelos: classifier (~13 MB) y GLiNER 4 tipologias (~4.4 GB total).
-# El .dockerignore preserva models/ pero excluye otros directorios pesados.
+# Copiar modelos: SOLO el classifier (~1.4 MB). Los 4 GLiNER (~4.4 GB) NO se
+# bakean en la imagen: se descargan en runtime desde el Hub (GLINER_HUB_REPO),
+# de forma lazy y solo la tipologia que se procesa. Asi la imagen queda chica
+# y el build no depende de tener 4.4 GB en el contexto.
 COPY models/ ./models/
 
 # Modelos de PaddleOCR (~16 MB): NO se bakean. Se descargan en el primer
@@ -60,6 +62,8 @@ ENV OMP_NUM_THREADS=1 \
     TOKENIZERS_PARALLELISM=false \
     PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python \
     SINGLE_MODEL_RAM=1 \
+    GLINER_HUB_REPO=mateopola/docuinsight-gliner \
+    HF_HOME=/app/.cache/huggingface \
     PYTHONUNBUFFERED=1
 
 EXPOSE 8501
