@@ -24,6 +24,7 @@ from schemas import DocType, DocumentResult, Entity
 from pipeline_utils.classifier import DocumentClassifier
 from pipeline_utils.ner import NERDispatcher
 from pipeline_utils.ocr import extract_text
+from pipeline_utils.postproc import clean_entities
 
 # Mapeo del string que devuelve el clasificador al enum DocType de DocuInsight
 _DOCTYPE_FROM_STR = {
@@ -85,6 +86,9 @@ class RealPipeline:
             entities: list[Entity] = []
             if doc_type != DocType.DESCONOCIDO:
                 extracted = self.ner.extract(text, doctype_str)
+                # Post-proceso: limpiar ruido OCR pegado al valor (prefijos de
+                # etiqueta, texto colindante, errores de mes en fechas).
+                extracted = clean_entities(extracted)
                 entities = [
                     Entity(label=e.ui_label, value=e.value, confidence=e.confidence)
                     for e in extracted
