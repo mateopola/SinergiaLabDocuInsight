@@ -14,11 +14,20 @@ Ver reports/nb24_gliner_finetune_resumen.md del repo SinergiaLabProyecto.
 """
 from __future__ import annotations
 
+import gc
+import os
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
 from .label_mapping import GLINER_LABELS_BY_DOCTYPE, to_ui_label
+
+# En PCs con poca RAM (<= 8 GB) cargar los 4 modelos GLiNER (~4.4 GB) causa
+# swapping y freezes. Con SINGLE_MODEL_RAM=1 (default) el dispatcher mantiene
+# UN solo modelo cargado a la vez: al cambiar de tipologia descarga el anterior.
+# Techo de RAM ~1.1 GB constante, a cambio de recargar (~30-60s) al alternar
+# tipologias. Para servidores con RAM holgada, exportar SINGLE_MODEL_RAM=0.
+SINGLE_MODEL_RAM = os.environ.get("SINGLE_MODEL_RAM", "1") == "1"
 
 
 @dataclass(frozen=True)
@@ -72,6 +81,12 @@ class GLiNERExtractor:
                 str(self.model_dir), local_files_only=True
             )
         return self.model
+
+    def unload(self):
+        """Libera el modelo de RAM. Se vuelve a cargar en el proximo extract()."""
+        if self.model is not None:
+            self.model = None
+            gc.collect()
 
     def extract(self, text: str, doctype: str) -> list[ExtractedEntity]:
         # Nota: `doctype` se pasa por consistencia con la firma anterior
@@ -129,8 +144,14 @@ class NERDispatcher:
         self,
         models_dir: Path,
         thresholds: dict[str, float] | None = None,
+        single_model_ram: bool | None = None,
     ):
         thresholds = thresholds or DEFAULT_THRESHOLDS
+        # Si no se pasa explicito, usar la config global (env SINGLE_MODEL_RAM).
+        self.single_model_ram = (
+            SINGLE_MODEL_RAM if single_model_ram is None else single_model_ram
+        )
+        self._last_doctype: str | None = None
         gliner_dir = models_dir / "ner" / "gliner"
         self.extractors: dict[str, GLiNERExtractor] = {
             "camara_comercio": GLiNERExtractor(
@@ -151,4 +172,12 @@ class NERDispatcher:
         extractor = self.extractors.get(doctype)
         if extractor is None:
             return []
+        # Modo low-RAM: al cambiar de tipologia, descargar el modelo previo
+        # para que nunca haya mas de uno residente en memoria.
+        if (self.single_model_ram and self._last_doctype is not None
+                and self._last_doctype != doctype):
+            prev = self.extractors.get(self._last_doctype)
+            if prev is not None:
+                prev.unload()
+        self._last_doctype = doctype
         return extractor.extract(text, doctype)
