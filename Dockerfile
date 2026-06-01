@@ -48,11 +48,18 @@ COPY models/ ./models/
 # durante el build (con curl -k para skip SSL).
 COPY paddle_cache/ /root/.paddleocr/
 
-# Threading: forzar single-thread para que torch (GLiNER) y paddle no peleen
+# Threading: forzar single-thread para que torch (GLiNER) y paddle no peleen.
+# protobuf: pure-python para que los _pb2 de PaddlePaddle 2.6 no choquen con
+#   protobuf >= 4 (Streamlit importa protobuf antes que app.py, asi que la var
+#   DEBE estar en el entorno, no en codigo).
+# SINGLE_MODEL_RAM: 1 modelo GLiNER residente a la vez (baja RAM). En servidores
+#   con RAM holgada se puede setear a 0 para cachear los 4 y evitar recargas.
 ENV OMP_NUM_THREADS=1 \
     MKL_NUM_THREADS=1 \
     OPENBLAS_NUM_THREADS=1 \
     TOKENIZERS_PARALLELISM=false \
+    PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python \
+    SINGLE_MODEL_RAM=1 \
     PYTHONUNBUFFERED=1
 
 EXPOSE 8501

@@ -28,8 +28,12 @@ os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 # protobuf 7.x (traido por otras libs) rompe los _pb2 de PaddlePaddle 2.6
 # ("Descriptors cannot be created directly"). Forzar la implementacion pura
-# Python de protobuf evita el conflicto. DEBE setearse antes de importar
-# cualquier cosa que cargue protobuf (transformers/gliner/paddle).
+# Python de protobuf evita el conflicto.
+# OJO: cuando se corre con `streamlit run`, Streamlit YA importo protobuf antes
+# de ejecutar este archivo, asi que este setdefault llega tarde. El fix real es
+# setear la var EN EL ENTORNO antes de arrancar Python -> usar run.ps1 (local)
+# o el ENV del Dockerfile (deploy). Este setdefault solo cubre el caso de
+# importar app.py como modulo sin pasar por streamlit.
 os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
 
 # SSL: configuramos el bundle de `certifi` para descargas legitimas (HuggingFace
