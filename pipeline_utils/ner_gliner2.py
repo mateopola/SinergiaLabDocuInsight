@@ -33,32 +33,35 @@ class ExtractedEntity:
 
 
 # Esquema por tipologia: {label_descriptivo_para_gliner2: ui_label_de_la_app}
-# El label descriptivo es el prompt que recibe el modelo (schema-driven).
-# El ui_label es el campo que la UI conoce (schemas.EXPECTED_ENTITIES).
+# El label descriptivo es el prompt EXACTO que recibe el modelo (schema-driven).
+# Estos son los labels OFICIALES con los que Yeraldyn entreno el modelo
+# (confirmados por ella) -> rinde igual que en el documento Ciclo 4.
 SCHEMA_BY_DOCTYPE: dict[str, dict[str, str]] = {
     "cedula": {
-        "numero de cedula de ciudadania":      "numero_cedula",
-        "apellidos de la persona":             "apellidos",
-        "nombres de la persona":               "nombres",
-        "fecha de expedicion de la cedula":    "fecha_expedicion",
-        "lugar o municipio de expedicion":     "lugar_expedicion",
+        "primer y segundo nombre propio del titular sin apellidos":               "nombres",
+        "primer y segundo apellido del titular de la cedula sin nombres propios": "apellidos",
+        "numero de cedula de ciudadania compuesto solo por digitos":              "numero_cedula",
+        "municipio colombiano donde fue expedida la cedula de ciudadania":        "lugar_expedicion",
+        "mes abreviado y ano de cuatro digitos en que fue expedida la cedula":    "fecha_expedicion",
     },
     "camara_comercio": {
-        "NIT de la empresa":                   "nit",
-        "numero de matricula mercantil":       "numero_matricula",
-        "razon social de la empresa":          "razon_social",
-        "nombre del representante legal":      "representante_legal",
+        "razon social de la empresa":                                             "razon_social",
+        "numero NIT de nueve digitos de la empresa sin digito verificador DV":    "nit",
+        "numero de matricula mercantil asignado por camara de comercio":          "numero_matricula",
+        "fecha de constitucion de la empresa ante notaria o escritura publica":   "fecha_constitucion",
+        "nombre completo de la persona nombrada como representante legal":         "representante_legal",
     },
     "rut": {
-        "NIT de la empresa":                   "nit",
-        "razon social de la empresa":          "razon_social",
-        "direccion de la sede principal":      "direccion",
-        "codigo de actividad economica CIIU":  "actividad_economica",
+        "numero NIT de nueve digitos de la empresa sin digito verificador DV":    "nit",
+        "razon social de la empresa":                                             "razon_social",
+        "calle carrera o avenida con numero y ciudad de la sede principal de la empresa": "direccion",
+        "descripcion de la actividad economica principal de la empresa":          "actividad_economica",
     },
     "poliza": {
-        "numero de la poliza":                 "numero_poliza",
-        "valor de la prima neta":              "prima",
-        "nombre del asegurado o tomador":      "tomador",
+        "empresa o entidad asegurada en la poliza de seguro":                     "asegurado",
+        "nombre o razon social del tomador del seguro":                           "tomador",
+        "cifra en pesos colombianos de la prima neta pagada por la poliza de seguro": "prima",
+        "numero de poliza de seguro emitido por la aseguradora":                  "numero_poliza",
     },
 }
 
