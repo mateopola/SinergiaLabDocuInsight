@@ -61,7 +61,7 @@ ENV OMP_NUM_THREADS=1 \
     OPENBLAS_NUM_THREADS=1 \
     TOKENIZERS_PARALLELISM=false \
     PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python \
-    GLINER2_HUB_REPO=Yeraldyn/gliner2-large-sineria-v8 \
+    GLINER2_HUB_REPO=mateopola/gliner2-sineria-merged \
     HF_HOME=/app/.cache/huggingface \
     PYTHONUNBUFFERED=1
 
