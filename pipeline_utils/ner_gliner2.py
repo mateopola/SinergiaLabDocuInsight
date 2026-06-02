@@ -87,21 +87,35 @@ class GLiNER2Extractor:
             return []
         model = self._ensure_loaded()
         labels = list(schema.keys())
-        raw = model.extract_entities(text, labels)
-        # raw = {'entities': {label_descriptivo: [valores]}}
+        # include_confidence=True -> el modelo devuelve el score real por entidad,
+        # no un 1.0 fijo. Formato: {'entities': {label: [{'text':..,'confidence':..}]}}
+        try:
+            raw = model.extract_entities(text, labels, include_confidence=True)
+            con_score = True
+        except TypeError:
+            # version de gliner2 sin el parametro -> fallback sin score
+            raw = model.extract_entities(text, labels)
+            con_score = False
         ents = (raw or {}).get("entities", {})
         out: list[ExtractedEntity] = []
         seen: set[tuple[str, str]] = set()
         for desc_label, ui_label in schema.items():
-            for value in ents.get(desc_label, []) or []:
-                value = (value or "").strip()
+            for item in ents.get(desc_label, []) or []:
+                # Con include_confidence: item = {'text':.., 'confidence':..}.
+                # Sin el: item = str. Soportamos ambos por robustez.
+                if isinstance(item, dict):
+                    value = (item.get("text") or "").strip()
+                    conf = float(item.get("confidence", 1.0))
+                else:
+                    value = (item or "").strip()
+                    conf = 1.0
                 if not value:
                     continue
                 key = (ui_label, value)
                 if key in seen:
                     continue
                 seen.add(key)
-                out.append(ExtractedEntity(ui_label=ui_label, value=value, confidence=1.0))
+                out.append(ExtractedEntity(ui_label=ui_label, value=value, confidence=conf))
         return out
 
 
