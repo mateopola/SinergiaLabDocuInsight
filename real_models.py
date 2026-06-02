@@ -22,7 +22,7 @@ os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
 
 from schemas import DocType, DocumentResult, Entity
 from pipeline_utils.classifier import DocumentClassifier
-from pipeline_utils.ner import NERDispatcher
+from pipeline_utils.ner_gliner2 import NERDispatcher  # variante v2: modelo unificado de las companeras
 from pipeline_utils.ocr import extract_text
 from pipeline_utils.postproc import clean_entities
 

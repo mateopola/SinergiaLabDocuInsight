@@ -16,8 +16,8 @@ numpy>=1.24.0
 paddleocr==2.8.1
 paddlepaddle==2.6.2
 
-# NER GLiNER fine-tuned (4 modelos, ver models/ner/gliner/)
-# Las versiones estan pineadas exactas a las del entrenamiento (notebook 24)
-# para garantizar carga reproducible de los pesos.
-gliner==0.2.13
-transformers==4.45.0
+# NER VARIANTE v2: GLiNER2 unificado (modelo de las companeras,
+# Yeraldyn/gliner2-large-sineria-v8). gliner2[local] trae torch, transformers
+# y peft. NO se pinea transformers para dejar que gliner2 resuelva su version
+# (el modelo se guardo con transformers 5.x).
+gliner2[local]
