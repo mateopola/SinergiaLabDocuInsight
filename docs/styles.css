@@ -276,8 +276,8 @@ body {
 }
 
 .team-avatar {
-    width: 5.5rem;
-    height: 5.5rem;
+    width: 4rem;
+    height: 4rem;
     border-radius: 50%;
     margin: 0 auto 1rem;
     display: flex;
@@ -291,6 +291,15 @@ body {
     box-shadow: 0 10px 24px -8px rgba(15, 23, 42, 0.25);
     border: 3px solid white;
     transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+/* Foto real del integrante: llena el circulo y se recorta */
+.team-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .team-card:hover .team-avatar {
@@ -392,8 +401,8 @@ body {
         padding: 1.5rem 1.25rem;
     }
     .team-avatar {
-        width: 4.5rem;
-        height: 4.5rem;
+        width: 4rem;
+        height: 4rem;
         font-size: 1.2rem;
     }
 }
