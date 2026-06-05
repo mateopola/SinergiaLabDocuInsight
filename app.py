@@ -530,13 +530,13 @@ h1, h2, h3, h4, .display, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {{
     background: rgba(12, 116, 200, 0.05);
 }}
 .tab-link.active {{
-    background: {INK};
+    background: linear-gradient(135deg, {PRIMARY} 0%, {PRIMARY_DARK} 100%);
     color: white;
-    box-shadow: 0 2px 6px -2px rgba(15, 23, 42, 0.3);
+    box-shadow: 0 4px 12px -3px rgba(12, 116, 200, 0.3);
 }}
 .tab-link.active:hover {{
     color: white;
-    background: {INK};
+    background: linear-gradient(135deg, {PRIMARY_DARK} 0%, {PRIMARY} 100%);
 }}
 
 /* ============================================================
@@ -779,19 +779,20 @@ h1, h2, h3, h4, .display, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {{
    BUTTONS
    ============================================================ */
 .stButton > button[kind="primary"], .stDownloadButton > button {{
-    background: {INK} !important;
+    background: linear-gradient(135deg, {PRIMARY} 0%, {PRIMARY_DARK} 100%) !important;
     color: white !important;
     border: none !important;
     border-radius: 10px !important;
     padding: 0.7rem 1.4rem !important;
     font-family: 'Inter', sans-serif !important;
     font-weight: 600 !important;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1) !important;
+    box-shadow: 0 6px 16px -4px rgba(12, 116, 200, 0.35) !important;
     transition: all 0.15s ease !important;
 }}
 .stButton > button[kind="primary"]:hover, .stDownloadButton > button:hover {{
-    background: #1E293B !important;
-    box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.2) !important;
+    background: linear-gradient(135deg, {PRIMARY_DARK} 0%, {PRIMARY} 100%) !important;
+    box-shadow: 0 10px 24px -6px rgba(12, 116, 200, 0.45) !important;
+    transform: translateY(-1px) !important;
     color: white !important;
 }}
 .stButton > button[kind="secondary"] {{
@@ -1534,18 +1535,47 @@ elif active_tab == "procesar":
             file_bytes = uploaded.getvalue()
             pipeline = _cached_pipeline(use_mock)
             with st.status("Procesando documento…", expanded=True) as status:
-                st.write("Extrayendo texto (OCR)…")
                 try:
-                    result = pipeline.process(file_bytes, uploaded.name)
-                    if result.error:
-                        status.update(label=result.error, state="error")
-                    else:
-                        st.write(
-                            f"Clasificado como **{DOC_TYPE_LABELS[result.doc_type]}** "
-                            f"({result.doc_type_confidence:.1%} confianza)"
+                    if hasattr(pipeline, "run_ocr"):
+                        # Pipeline real: mostrar el avance por fases en vivo
+                        import time as _t
+                        _start = _t.time()
+
+                        st.write("**1/3 · Extrayendo texto** (OCR)…")
+                        text, engine = pipeline.run_ocr(file_bytes, uploaded.name)
+                        if not text or not text.strip():
+                            raise ValueError("No se pudo extraer texto del documento.")
+                        st.write(f"&nbsp;&nbsp;✓ Texto extraído — {len(text):,} caracteres ({engine})")
+
+                        st.write("**2/3 · Clasificando tipología**…")
+                        doctype_str, conf, doc_type = pipeline.run_classify(text)
+                        st.write(f"&nbsp;&nbsp;✓ {DOC_TYPE_LABELS[doc_type]} — {conf:.0%} de confianza")
+
+                        if pipeline.needs_rut_reocr(doc_type, engine):
+                            st.write("&nbsp;&nbsp;↻ RUT detectado: re-OCR de las casillas DIAN…")
+                            text, engine = pipeline.run_ocr(file_bytes, uploaded.name, force_ocr=True)
+
+                        st.write("**3/3 · Extrayendo entidades** (NER)…")
+                        entities = pipeline.run_ner(text, doctype_str)
+                        st.write(f"&nbsp;&nbsp;✓ {len(entities)} entidades extraídas")
+
+                        result = DocumentResult(
+                            filename=uploaded.name,
+                            doc_type=doc_type,
+                            doc_type_confidence=conf,
+                            extracted_text=text,
+                            entities=entities,
+                            processing_time_ms=int((_t.time() - _start) * 1000),
                         )
-                        st.write(f"{len(result.entities)} entidades extraidas")
-                        status.update(label="Procesamiento completo", state="complete")
+                        status.update(label="✓ Procesamiento completo", state="complete")
+                    else:
+                        # Pipeline mock (dev): un solo paso
+                        st.write("Procesando…")
+                        result = pipeline.process(file_bytes, uploaded.name)
+                        if result.error:
+                            status.update(label=result.error, state="error")
+                        else:
+                            status.update(label="✓ Procesamiento completo", state="complete")
                 except Exception as e:
                     result = DocumentResult(
                         filename=uploaded.name,

@@ -52,11 +52,44 @@ class RealPipeline:
         self.classifier = DocumentClassifier(models_dir / "classifier")
         self.ner = NERDispatcher(models_dir)
 
+    # ------------------------------------------------------------------
+    # Fases expuestas individualmente para que la UI muestre el avance en
+    # tiempo real (1/3 OCR -> 2/3 Clasificacion -> 3/3 NER). process() las
+    # orquesta en un solo llamado para callers que no necesitan el paso-a-paso.
+    # ------------------------------------------------------------------
+
+    def run_ocr(self, file_bytes: bytes, filename: str, force_ocr: bool = False):
+        """Fase 1 — extrae texto. Devuelve (texto, motor)."""
+        return extract_text(file_bytes, filename, force_ocr=force_ocr)
+
+    def run_classify(self, text: str):
+        """Fase 2 — clasifica la tipologia. Devuelve (doctype_str, conf, DocType)."""
+        doctype_str, conf = self.classifier.predict(text)
+        if conf < MIN_CLASSIFIER_CONFIDENCE:
+            doctype_str = "desconocido"
+        doc_type = _DOCTYPE_FROM_STR.get(doctype_str, DocType.DESCONOCIDO)
+        return doctype_str, conf, doc_type
+
+    def needs_rut_reocr(self, doc_type, engine) -> bool:
+        """True si es un RUT digital leido por PyMuPDF (requiere re-OCR Paddle)."""
+        return doc_type == DocType.RUT and engine == "pymupdf"
+
+    def run_ner(self, text: str, doctype_str: str) -> list[Entity]:
+        """Fase 3 — extrae entidades + limpia ruido OCR. Devuelve list[Entity]."""
+        if doctype_str == "desconocido":
+            return []
+        extracted = self.ner.extract(text, doctype_str)
+        extracted = clean_entities(extracted)
+        return [
+            Entity(label=e.ui_label, value=e.value, confidence=e.confidence)
+            for e in extracted
+        ]
+
     def process(self, file_bytes: bytes, filename: str) -> DocumentResult:
         start = time.time()
         try:
-            # 1. OCR / extraccion de texto (PyMuPDF si digital, PaddleOCR si no)
-            text, engine = extract_text(file_bytes, filename)
+            # 1. OCR
+            text, engine = self.run_ocr(file_bytes, filename)
             if not text or not text.strip():
                 return DocumentResult(
                     filename=filename,
@@ -68,31 +101,14 @@ class RealPipeline:
                 )
 
             # 2. Clasificacion
-            doctype_str, doctype_conf = self.classifier.predict(text)
-            if doctype_conf < MIN_CLASSIFIER_CONFIDENCE:
-                doctype_str = "desconocido"
-            doc_type = _DOCTYPE_FROM_STR.get(doctype_str, DocType.DESCONOCIDO)
+            doctype_str, doctype_conf, doc_type = self.run_classify(text)
 
-            # 2.5. Re-OCR forzado para RUT digital.
-            # El formulario DIAN tiene el NIT/CIIU en cajas individuales por
-            # digito; PyMuPDF las extrae como tokens sueltos ("0 2", "1 8")
-            # que rompen al modelo NER. PaddleOCR lee en orden visual y produce
-            # la distribucion de tokens que vio el training de los 4 GLiNER.
-            # ~30-60s extra por RUT digital, pero el output es usable.
-            if doc_type == DocType.RUT and engine == "pymupdf":
-                text, engine = extract_text(file_bytes, filename, force_ocr=True)
+            # 2.5. Re-OCR forzado para RUT digital (cajas DIAN por digito).
+            if self.needs_rut_reocr(doc_type, engine):
+                text, engine = self.run_ocr(file_bytes, filename, force_ocr=True)
 
-            # 3. NER (solo si la clase es conocida)
-            entities: list[Entity] = []
-            if doc_type != DocType.DESCONOCIDO:
-                extracted = self.ner.extract(text, doctype_str)
-                # Post-proceso: limpiar ruido OCR pegado al valor (prefijos de
-                # etiqueta, texto colindante, errores de mes en fechas).
-                extracted = clean_entities(extracted)
-                entities = [
-                    Entity(label=e.ui_label, value=e.value, confidence=e.confidence)
-                    for e in extracted
-                ]
+            # 3. NER
+            entities = self.run_ner(text, doctype_str)
 
             return DocumentResult(
                 filename=filename,
