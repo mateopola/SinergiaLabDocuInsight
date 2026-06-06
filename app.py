@@ -1081,6 +1081,51 @@ h1, h2, h3, h4, .display, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {{
     .result-hero {{ flex-direction: column; text-align: left; gap: 1rem; }}
     .result-hero .r-conf {{ text-align: left; }}
 }}
+
+/* ============================================================
+   OVERLAY DE PROCESAMIENTO (spinner centrado)
+   ============================================================ */
+.proc-overlay {{
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(255, 255, 255, 0.80);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}}
+.proc-card {{
+    text-align: center;
+    background: white;
+    padding: 2.2rem 2.8rem;
+    border-radius: 18px;
+    box-shadow: 0 24px 60px -16px rgba(12, 116, 200, 0.35);
+    border: 1px solid rgba(12, 116, 200, 0.12);
+    min-width: 260px;
+}}
+.proc-spinner {{
+    width: 54px;
+    height: 54px;
+    margin: 0 auto 1.2rem;
+    border: 5px solid rgba(12, 116, 200, 0.15);
+    border-top-color: {PRIMARY};
+    border-radius: 50%;
+    animation: procspin 0.8s linear infinite;
+}}
+@keyframes procspin {{ to {{ transform: rotate(360deg); }} }}
+.proc-msg {{
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 1.02rem;
+    color: {INK};
+}}
+.proc-sub {{
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+    color: rgba(65, 68, 75, 0.6);
+}}
 </style>
 """,
     unsafe_allow_html=True,
@@ -1534,57 +1579,61 @@ elif active_tab == "procesar":
         if process:
             file_bytes = uploaded.getvalue()
             pipeline = _cached_pipeline(use_mock)
-            with st.status("Procesando documento…", expanded=True) as status:
-                try:
-                    if hasattr(pipeline, "run_ocr"):
-                        # Pipeline real: mostrar el avance por fases en vivo
-                        import time as _t
-                        _start = _t.time()
 
-                        st.write("**1/3 · Extrayendo texto** (OCR)…")
-                        text, engine = pipeline.run_ocr(file_bytes, uploaded.name)
-                        if not text or not text.strip():
-                            raise ValueError("No se pudo extraer texto del documento.")
-                        st.write(f"&nbsp;&nbsp;✓ Texto extraído — {len(text):,} caracteres ({engine})")
+            # Overlay centrado con spinner: muestra la fase actual mientras
+            # procesa y desaparece al terminar (recien ahi se ven los resultados).
+            overlay = st.empty()
 
-                        st.write("**2/3 · Clasificando tipología**…")
-                        doctype_str, conf, doc_type = pipeline.run_classify(text)
-                        st.write(f"&nbsp;&nbsp;✓ {DOC_TYPE_LABELS[doc_type]} — {conf:.0%} de confianza")
+            def _spin(msg, sub="Esto puede tardar unos segundos la primera vez…"):
+                overlay.markdown(
+                    f'<div class="proc-overlay"><div class="proc-card">'
+                    f'<div class="proc-spinner"></div>'
+                    f'<div class="proc-msg">{msg}</div>'
+                    f'<div class="proc-sub">{sub}</div></div></div>',
+                    unsafe_allow_html=True,
+                )
 
-                        if pipeline.needs_rut_reocr(doc_type, engine):
-                            st.write("&nbsp;&nbsp;↻ RUT detectado: re-OCR de las casillas DIAN…")
-                            text, engine = pipeline.run_ocr(file_bytes, uploaded.name, force_ocr=True)
+            try:
+                if hasattr(pipeline, "run_ocr"):
+                    import time as _t
+                    _start = _t.time()
 
-                        st.write("**3/3 · Extrayendo entidades** (NER)…")
-                        entities = pipeline.run_ner(text, doctype_str)
-                        st.write(f"&nbsp;&nbsp;✓ {len(entities)} entidades extraídas")
+                    _spin("Extrayendo texto (OCR)…")
+                    text, engine = pipeline.run_ocr(file_bytes, uploaded.name)
+                    if not text or not text.strip():
+                        raise ValueError("No se pudo extraer texto del documento.")
 
-                        result = DocumentResult(
-                            filename=uploaded.name,
-                            doc_type=doc_type,
-                            doc_type_confidence=conf,
-                            extracted_text=text,
-                            entities=entities,
-                            processing_time_ms=int((_t.time() - _start) * 1000),
-                        )
-                        status.update(label="✓ Procesamiento completo", state="complete")
-                    else:
-                        # Pipeline mock (dev): un solo paso
-                        st.write("Procesando…")
-                        result = pipeline.process(file_bytes, uploaded.name)
-                        if result.error:
-                            status.update(label=result.error, state="error")
-                        else:
-                            status.update(label="✓ Procesamiento completo", state="complete")
-                except Exception as e:
+                    _spin("Clasificando tipología…")
+                    doctype_str, conf, doc_type = pipeline.run_classify(text)
+
+                    if pipeline.needs_rut_reocr(doc_type, engine):
+                        _spin("Releyendo el RUT (casillas DIAN)…")
+                        text, engine = pipeline.run_ocr(file_bytes, uploaded.name, force_ocr=True)
+
+                    _spin("Extrayendo entidades (NER)…")
+                    entities = pipeline.run_ner(text, doctype_str)
+
                     result = DocumentResult(
                         filename=uploaded.name,
-                        doc_type=DocType.DESCONOCIDO,
-                        doc_type_confidence=0.0,
-                        extracted_text="",
-                        error=f"Error en pipeline: {type(e).__name__}: {e}",
+                        doc_type=doc_type,
+                        doc_type_confidence=conf,
+                        extracted_text=text,
+                        entities=entities,
+                        processing_time_ms=int((_t.time() - _start) * 1000),
                     )
-                    status.update(label=f"Error: {e}", state="error")
+                else:
+                    _spin("Procesando documento…")
+                    result = pipeline.process(file_bytes, uploaded.name)
+            except Exception as e:
+                result = DocumentResult(
+                    filename=uploaded.name,
+                    doc_type=DocType.DESCONOCIDO,
+                    doc_type_confidence=0.0,
+                    extracted_text="",
+                    error=f"Error en pipeline: {type(e).__name__}: {e}",
+                )
+            finally:
+                overlay.empty()  # quitar el spinner -> aparecen los resultados
 
             # Adjuntamos los bytes al result para que el preview funcione despues
             # (en sesion actual y al volver desde la tab Casos)
