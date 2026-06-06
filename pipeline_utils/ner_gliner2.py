@@ -134,3 +134,14 @@ class NERDispatcher:
 
     def extract(self, text: str, doctype: str) -> list[ExtractedEntity]:
         return self.extractor.extract(text, doctype)
+
+    def expected_labels(self, doctype: str) -> list[str]:
+        """ui_labels que el modelo intenta extraer para esta tipologia
+        (sirve para mostrar en la UI los campos NO reconocidos)."""
+        schema = SCHEMA_BY_DOCTYPE.get(doctype, {})
+        # mantener orden y sin duplicados de ui_label
+        out: list[str] = []
+        for ui_label in schema.values():
+            if ui_label not in out:
+                out.append(ui_label)
+        return out

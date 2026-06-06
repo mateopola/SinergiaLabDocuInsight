@@ -98,6 +98,12 @@ class RealPipeline:
             for e in best.values()
         ]
 
+    def expected_fields(self, doctype_str: str) -> list[str]:
+        """Campos (ui_labels) que el NER intenta extraer para esta tipologia.
+        Permite mostrar en la UI los que NO fueron reconocidos."""
+        fn = getattr(self.ner, "expected_labels", None)
+        return list(fn(doctype_str)) if fn else []
+
     def process(self, file_bytes: bytes, filename: str) -> DocumentResult:
         start = time.time()
         try:

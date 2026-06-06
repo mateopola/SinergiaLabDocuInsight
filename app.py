@@ -83,6 +83,7 @@ from schemas import (
     EXPECTED_ENTITIES,
     DocType,
     DocumentResult,
+    Entity,
     humanize_entity_label,
 )
 
@@ -1329,23 +1330,41 @@ def _render_result(result: DocumentResult) -> None:
         unsafe_allow_html=True,
     )
 
-    if result.entities:
+    _expected = getattr(result, "_expected_fields", None)
+    if result.entities or _expected:
         st.caption("Revisá, corregí y validá cada campo · Human-in-the-Loop")
-        _df = pd.DataFrame([
-            {
-                "Campo": humanize_entity_label(e.label),
-                "Valor": e.value,
-                "Confianza": f"{e.confidence:.0%}",
-                "Validado": e.confidence >= 0.85,  # pre-marcamos los de alta confianza
-            }
-            for e in result.entities
-        ])
+        _by_label = {e.label: e for e in result.entities}
+        # Orden de filas: todos los campos que el modelo intenta (incluye los
+        # NO reconocidos, vacios). Si no hay lista esperada, usar los extraidos.
+        _labels = list(_expected) if _expected else [e.label for e in result.entities]
+        for e in result.entities:  # por si extrajo algo fuera del esquema
+            if e.label not in _labels:
+                _labels.append(e.label)
+
+        _rows = []
+        for _lab in _labels:
+            e = _by_label.get(_lab)
+            if e is not None:
+                _rows.append({
+                    "Campo": humanize_entity_label(_lab),
+                    "Valor": e.value,
+                    "Confianza": f"{e.confidence:.0%}",
+                    "Validado": e.confidence >= 0.85,
+                })
+            else:
+                _rows.append({
+                    "Campo": humanize_entity_label(_lab),
+                    "Valor": "",
+                    "Confianza": "— no detectado",
+                    "Validado": False,
+                })
+        _df = pd.DataFrame(_rows)
         _edited = st.data_editor(
             _df,
             column_config={
                 "Campo": st.column_config.TextColumn("Campo", disabled=True, width="medium"),
                 "Valor": st.column_config.TextColumn(
-                    "Valor", help="Editá el valor si el modelo se equivocó", width="large"
+                    "Valor", help="Editá o completá el valor a mano", width="large"
                 ),
                 "Confianza": st.column_config.TextColumn("Confianza", disabled=True, width="small"),
                 "Validado": st.column_config.CheckboxColumn(
@@ -1357,11 +1376,24 @@ def _render_result(result: DocumentResult) -> None:
             num_rows="fixed",
             key=f"editor_{result.filename}_{result.processing_time_ms}",
         )
-        # Reflejar las ediciones del usuario en el resultado (para Excel/JSON).
-        for _ent, (_, _row) in zip(result.entities, _edited.iterrows()):
-            _ent.value = str(_row["Valor"])
+        # Reflejar ediciones en el resultado (para Excel/JSON): filas con valor
+        # quedan como entidades; las vacias se descartan.
+        _new = []
+        for _lab, (_, _row) in zip(_labels, _edited.iterrows()):
+            _val = str(_row["Valor"]).strip()
+            if not _val:
+                continue
+            _orig = _by_label.get(_lab)
+            _conf = _orig.confidence if _orig is not None else 1.0
+            _new.append(Entity(label=_lab, value=_val, confidence=_conf))
+        result.entities = _new
+
         _n_ok = int(_edited["Validado"].sum())
-        st.caption(f"**{_n_ok} de {len(_edited)}** campos validados por el usuario.")
+        _n_missing = sum(1 for r in _rows if not r["Valor"])
+        _resumen = f"**{_n_ok} de {len(_edited)}** campos validados"
+        if _n_missing:
+            _resumen += f" · ⚠️ {_n_missing} sin reconocer (completalos a mano)"
+        st.caption(_resumen)
     else:
         st.info("No se extrajeron entidades de este documento.")
 
@@ -1669,6 +1701,16 @@ elif active_tab == "procesar":
             # Adjuntamos los bytes al result para que el preview funcione despues
             # (en sesion actual y al volver desde la tab Casos)
             result._file_bytes = file_bytes
+            # Campos que el modelo intenta extraer (para mostrar los NO reconocidos)
+            if hasattr(pipeline, "expected_fields"):
+                _dt_str = (
+                    result.doc_type.value
+                    if result.doc_type != DocType.DESCONOCIDO else "desconocido"
+                )
+                try:
+                    result._expected_fields = pipeline.expected_fields(_dt_str)
+                except Exception:
+                    result._expected_fields = None
             st.session_state.last_result = result
             st.session_state.history.append(result)
 
