@@ -1330,7 +1330,38 @@ def _render_result(result: DocumentResult) -> None:
     )
 
     if result.entities:
-        st.markdown(_entities_table_html(result), unsafe_allow_html=True)
+        st.caption("Revisá, corregí y validá cada campo · Human-in-the-Loop")
+        _df = pd.DataFrame([
+            {
+                "Campo": humanize_entity_label(e.label),
+                "Valor": e.value,
+                "Confianza": f"{e.confidence:.0%}",
+                "Validado": e.confidence >= 0.85,  # pre-marcamos los de alta confianza
+            }
+            for e in result.entities
+        ])
+        _edited = st.data_editor(
+            _df,
+            column_config={
+                "Campo": st.column_config.TextColumn("Campo", disabled=True, width="medium"),
+                "Valor": st.column_config.TextColumn(
+                    "Valor", help="Editá el valor si el modelo se equivocó", width="large"
+                ),
+                "Confianza": st.column_config.TextColumn("Confianza", disabled=True, width="small"),
+                "Validado": st.column_config.CheckboxColumn(
+                    "✓ OK", help="Marcá si el campo es correcto", width="small"
+                ),
+            },
+            hide_index=True,
+            use_container_width=True,
+            num_rows="fixed",
+            key=f"editor_{result.filename}_{result.processing_time_ms}",
+        )
+        # Reflejar las ediciones del usuario en el resultado (para Excel/JSON).
+        for _ent, (_, _row) in zip(result.entities, _edited.iterrows()):
+            _ent.value = str(_row["Valor"])
+        _n_ok = int(_edited["Validado"].sum())
+        st.caption(f"**{_n_ok} de {len(_edited)}** campos validados por el usuario.")
     else:
         st.info("No se extrajeron entidades de este documento.")
 

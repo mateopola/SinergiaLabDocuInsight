@@ -75,14 +75,27 @@ class RealPipeline:
         return doc_type == DocType.RUT and engine == "pymupdf"
 
     def run_ner(self, text: str, doctype_str: str) -> list[Entity]:
-        """Fase 3 — extrae entidades + limpia ruido OCR. Devuelve list[Entity]."""
+        """Fase 3 — extrae entidades + limpia ruido OCR + deduplica por campo.
+
+        Cada campo (label) es single-valued en estos documentos: si el modelo
+        devuelve varios candidatos para el mismo campo (ej. varias fechas de
+        constitucion), nos quedamos UNICAMENTE con el de mayor confianza.
+        """
         if doctype_str == "desconocido":
             return []
         extracted = self.ner.extract(text, doctype_str)
         extracted = clean_entities(extracted)
+
+        # Un solo valor por campo: el de mayor confianza.
+        best: dict[str, "object"] = {}
+        for e in extracted:
+            prev = best.get(e.ui_label)
+            if prev is None or e.confidence > prev.confidence:
+                best[e.ui_label] = e
+
         return [
             Entity(label=e.ui_label, value=e.value, confidence=e.confidence)
-            for e in extracted
+            for e in best.values()
         ]
 
     def process(self, file_bytes: bytes, filename: str) -> DocumentResult:
