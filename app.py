@@ -1127,6 +1127,13 @@ h1, h2, h3, h4, .display, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {{
     font-size: 0.85rem;
     color: rgba(65, 68, 75, 0.6);
 }}
+
+/* Tabla editable (HITL): que combine con el estilo de las cards */
+[data-testid="stDataFrame"], [data-testid="stDataEditor"], [data-testid="stDataFrameResizable"] {{
+    border-radius: 12px !important;
+    border: 1px solid rgba(12, 116, 200, 0.14) !important;
+    box-shadow: var(--shadow-sm);
+}}
 </style>
 """,
     unsafe_allow_html=True,
@@ -1307,7 +1314,7 @@ def _render_result(result: DocumentResult) -> None:
     st.markdown('<div style="height:0.75rem;"></div>', unsafe_allow_html=True)
 
     # Documento + datos extraidos LADO A LADO
-    col_doc, col_meta = st.columns([1, 1.2], gap="large")
+    col_doc, col_meta = st.columns([1, 1.35], gap="large")
 
     with col_doc:
         st.markdown(
@@ -1363,11 +1370,11 @@ def _render_result(result: DocumentResult) -> None:
         _edited = col_meta.data_editor(
             _df,
             column_config={
-                "Campo": st.column_config.TextColumn("Campo", disabled=True, width="medium"),
+                "Campo": st.column_config.TextColumn("Campo", disabled=True),
                 "Valor": st.column_config.TextColumn(
-                    "Valor", help="Editá o completá el valor a mano", width="large"
+                    "Valor", help="Editá o completá el valor a mano"
                 ),
-                "Confianza": st.column_config.TextColumn("Confianza", disabled=True, width="small"),
+                "Confianza": st.column_config.TextColumn("Conf.", disabled=True, width="small"),
                 "Validado": st.column_config.CheckboxColumn(
                     "✓ OK", help="Marcá si el campo es correcto", width="small"
                 ),
@@ -1375,6 +1382,8 @@ def _render_result(result: DocumentResult) -> None:
             hide_index=True,
             use_container_width=True,
             num_rows="fixed",
+            # alto justo para todas las filas -> sin scroll vertical
+            height=36 * (len(_rows) + 1) + 4,
             key=f"editor_{result.filename}_{result.processing_time_ms}",
         )
         # Reflejar ediciones en el resultado (para Excel/JSON): filas con valor
