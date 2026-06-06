@@ -1269,9 +1269,47 @@ def _render_result(result: DocumentResult) -> None:
     # Layout 2 columnas: preview a la izquierda, datos a la derecha
     file_bytes = getattr(result, "_file_bytes", None)
 
-    col_preview, col_data = st.columns([1, 1.1], gap="large")
+    # Metricas compactas (fila full-width, arriba)
+    st.markdown(
+        f'<div class="section-title">{icon("activity", 14, PRIMARY, klass="ic")} Metricas del procesamiento</div>',
+        unsafe_allow_html=True,
+    )
+    m1, m2, m3, m4 = st.columns(4)
+    m1.markdown(_h(f"""
+<div class="kpi">
+<div class="kpi-head">{icon("tag", 14, PRIMARY, klass="ic")} Entidades</div>
+<div class="kpi-value">{len(result.entities)}<span class="kpi-unit">/ {expected}</span></div>
+<div class="kpi-sub">{coverage:.0f}% del esquema</div>
+</div>
+"""), unsafe_allow_html=True)
+    m2.markdown(_h(f"""
+<div class="kpi">
+<div class="kpi-head">{icon("check-circle", 14, PRIMARY, klass="ic")} Alta confianza</div>
+<div class="kpi-value">{high_conf}<span class="kpi-unit">/ {len(result.entities)}</span></div>
+<div class="kpi-sub success">campos</div>
+</div>
+"""), unsafe_allow_html=True)
+    m3.markdown(_h(f"""
+<div class="kpi">
+<div class="kpi-head">{icon("clock", 14, PRIMARY, klass="ic")} Latencia</div>
+<div class="kpi-value">{result.processing_time_ms}<span class="kpi-unit">ms</span></div>
+<div class="kpi-sub">end-to-end</div>
+</div>
+"""), unsafe_allow_html=True)
+    m4.markdown(_h(f"""
+<div class="kpi">
+<div class="kpi-head">{icon("file-text", 14, PRIMARY, klass="ic")} Texto OCR</div>
+<div class="kpi-value">{len(result.extracted_text):,}<span class="kpi-unit">chars</span></div>
+<div class="kpi-sub">extraidos</div>
+</div>
+"""), unsafe_allow_html=True)
 
-    with col_preview:
+    st.markdown('<div style="height:0.75rem;"></div>', unsafe_allow_html=True)
+
+    # Documento + datos extraidos LADO A LADO
+    col_doc, col_meta = st.columns([1, 1.2], gap="large")
+
+    with col_doc:
         st.markdown(
             f'<div class="section-title">{icon("file", 14, PRIMARY, klass="ic")} Documento</div>',
             unsafe_allow_html=True,
@@ -1287,44 +1325,7 @@ def _render_result(result: DocumentResult) -> None:
         else:
             st.info("Preview no disponible para este caso (sesion anterior).")
 
-    with col_data:
-        st.markdown(
-            f'<div class="section-title">{icon("activity", 14, PRIMARY, klass="ic")} Metricas del procesamiento</div>',
-            unsafe_allow_html=True,
-        )
-        k1, k2 = st.columns(2)
-        k1.markdown(_h(f"""
-<div class="kpi">
-<div class="kpi-head">{icon("tag", 14, PRIMARY, klass="ic")} Entidades</div>
-<div class="kpi-value">{len(result.entities)}<span class="kpi-unit">/ {expected}</span></div>
-<div class="kpi-sub">{coverage:.0f}% del esquema</div>
-</div>
-"""), unsafe_allow_html=True)
-        k2.markdown(_h(f"""
-<div class="kpi">
-<div class="kpi-head">{icon("check-circle", 14, PRIMARY, klass="ic")} Alta confianza</div>
-<div class="kpi-value">{high_conf}<span class="kpi-unit">/ {len(result.entities)}</span></div>
-<div class="kpi-sub success">campos validados</div>
-</div>
-"""), unsafe_allow_html=True)
-        k3, k4 = st.columns(2)
-        k3.markdown(_h(f"""
-<div class="kpi">
-<div class="kpi-head">{icon("clock", 14, PRIMARY, klass="ic")} Latencia</div>
-<div class="kpi-value">{result.processing_time_ms}<span class="kpi-unit">ms</span></div>
-<div class="kpi-sub">end-to-end</div>
-</div>
-"""), unsafe_allow_html=True)
-        k4.markdown(_h(f"""
-<div class="kpi">
-<div class="kpi-head">{icon("file-text", 14, PRIMARY, klass="ic")} Texto OCR</div>
-<div class="kpi-value">{len(result.extracted_text):,}<span class="kpi-unit">chars</span></div>
-<div class="kpi-sub">tokens extraidos</div>
-</div>
-"""), unsafe_allow_html=True)
-
-    # Tabla de entidades full-width abajo de las dos columnas
-    st.markdown(
+    col_meta.markdown(
         f'<div class="section-title">{icon("database", 14, PRIMARY, klass="ic")} Metadatos extraidos '
         f'<span class="count">{len(result.entities)} campos</span></div>',
         unsafe_allow_html=True,
@@ -1332,7 +1333,7 @@ def _render_result(result: DocumentResult) -> None:
 
     _expected = getattr(result, "_expected_fields", None)
     if result.entities or _expected:
-        st.caption("Revisá, corregí y validá cada campo · Human-in-the-Loop")
+        col_meta.caption("Revisá, corregí y validá cada campo · Human-in-the-Loop")
         _by_label = {e.label: e for e in result.entities}
         # Orden de filas: todos los campos que el modelo intenta (incluye los
         # NO reconocidos, vacios). Si no hay lista esperada, usar los extraidos.
@@ -1359,7 +1360,7 @@ def _render_result(result: DocumentResult) -> None:
                     "Validado": False,
                 })
         _df = pd.DataFrame(_rows)
-        _edited = st.data_editor(
+        _edited = col_meta.data_editor(
             _df,
             column_config={
                 "Campo": st.column_config.TextColumn("Campo", disabled=True, width="medium"),
@@ -1393,9 +1394,9 @@ def _render_result(result: DocumentResult) -> None:
         _resumen = f"**{_n_ok} de {len(_edited)}** campos validados"
         if _n_missing:
             _resumen += f" · ⚠️ {_n_missing} sin reconocer (completalos a mano)"
-        st.caption(_resumen)
+        col_meta.caption(_resumen)
     else:
-        st.info("No se extrajeron entidades de este documento.")
+        col_meta.info("No se extrajeron entidades de este documento.")
 
     st.markdown('<div style="height:1.25rem;"></div>', unsafe_allow_html=True)
     col_ocr, col_dl = st.columns([1.5, 1])
