@@ -64,4 +64,5 @@ README.md
 
 # Scripts de testing local
 batch_test.py
-mock_models.py
+# mock_models.py se incluye: la app lo usa para ?dev=1 y para el fallback a modo
+# demostracion cuando el modelo real no esta disponible.

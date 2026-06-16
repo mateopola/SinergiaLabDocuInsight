@@ -34,7 +34,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copiar el codigo de la app
-COPY app.py pipeline.py real_models.py schemas.py export.py ./
+COPY app.py pipeline.py real_models.py mock_models.py seed_data.py schemas.py export.py ./
 COPY pipeline_utils/ ./pipeline_utils/
 COPY assets/ ./assets/
 COPY .streamlit/ ./.streamlit/

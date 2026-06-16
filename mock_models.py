@@ -141,6 +141,53 @@ class MockPipeline:
             processing_time_ms=int((time.time() - start) * 1000),
         )
 
+    # ------------------------------------------------------------------
+    # Fases individuales (misma interfaz que RealPipeline) para que la UI
+    # muestre el stepper avanzando paso a paso. Cada fase duerme un poco
+    # para que el avance OCR -> Clasificación -> NER sea visible en demos.
+    # ------------------------------------------------------------------
+
+    def run_ocr(self, file_bytes: bytes, filename: str, force_ocr: bool = False):
+        time.sleep(random.uniform(0.5, 0.9))
+        self._doc_type = self._guess_type_from_filename(filename)
+        return f"[Texto OCR simulado de {filename}]", "pymupdf"
+
+    def run_classify(self, text: str):
+        time.sleep(random.uniform(0.4, 0.7))
+        doc_type = getattr(self, "_doc_type", None) or random.choice([
+            DocType.CEDULA, DocType.RUT, DocType.CAMARA_COMERCIO, DocType.POLIZA,
+        ])
+        conf = random.uniform(0.78, 0.99)
+        return doc_type.value, conf, doc_type
+
+    def needs_rut_reocr(self, doc_type, engine) -> bool:
+        return False  # el mock no fuerza re-OCR
+
+    def run_ner(self, text: str, doctype_str: str) -> list[Entity]:
+        time.sleep(random.uniform(0.7, 1.1))
+        doc_type = self._safe_doctype(doctype_str)
+        templates = _FAKE_DATA.get(doc_type, [])
+        if not templates:
+            return []
+        template = random.choice(templates)
+        entities = []
+        for label, value in template.items():
+            if random.random() > 0.10:  # 90% de extracción exitosa por campo
+                entities.append(Entity(label=label, value=value,
+                                       confidence=random.uniform(0.70, 0.99)))
+        return entities
+
+    def expected_fields(self, doctype_str: str) -> list[str]:
+        templates = _FAKE_DATA.get(self._safe_doctype(doctype_str), [])
+        return list(templates[0].keys()) if templates else []
+
+    @staticmethod
+    def _safe_doctype(doctype_str: str) -> DocType:
+        try:
+            return DocType(doctype_str)
+        except ValueError:
+            return DocType.DESCONOCIDO
+
     @staticmethod
     def _guess_type_from_filename(filename: str) -> DocType:
         lower = filename.lower()

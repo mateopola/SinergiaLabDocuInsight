@@ -86,6 +86,15 @@ from schemas import (
     Entity,
     humanize_entity_label,
 )
+from seed_data import (
+    REVIEW_THRESHOLD,
+    build_seed_history,
+    compute_business_metrics,
+    confidence_by_type,
+    low_fields,
+    needs_review,
+    volume_by_day,
+)
 
 # ---------------------------------------------------------------------------
 # Constantes
@@ -128,9 +137,12 @@ def _platform_metrics() -> dict:
         return {"accuracy": 0, "n_train": 0}
 
 
-@st.cache_resource(show_spinner="Cargando modelos por primera vez (puede tardar 30-60s)…")
+@st.cache_resource(show_spinner=False)
 def _cached_pipeline(use_mock_flag: bool):
-    """Pipeline cacheado para que los modelos solo se carguen una vez por sesion."""
+    """Pipeline cacheado para que los modelos solo se carguen una vez por sesion.
+
+    show_spinner=False: el aviso de carga lo muestra el overlay centrado del
+    flujo de Procesar (no queremos el spinner gris de Streamlit abajo)."""
     return get_pipeline(use_mock=use_mock_flag)
 
 
@@ -631,6 +643,99 @@ h1, h2, h3, h4, .display, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {{
 .kpi-sub.warn {{ color: #B45309; }}
 .kpi-sub.danger {{ color: #B91C1C; }}
 
+/* --- HERO de impacto (banda de KPIs de negocio) --- */
+.hero-impact {{
+    background: linear-gradient(135deg, {PRIMARY} 0%, {PRIMARY_DARK} 55%, #06335c 100%);
+    border-radius: 20px;
+    padding: 1.4rem 1.7rem 1.5rem 1.7rem;
+    color: #fff;
+    box-shadow: 0 20px 44px -18px rgba(8, 88, 160, 0.55);
+    margin-bottom: 1.1rem;
+    position: relative; overflow: hidden;
+}}
+.hero-impact::after {{
+    content: ""; position: absolute; top: -40%; right: -8%;
+    width: 320px; height: 320px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(254,107,35,0.30) 0%, rgba(254,107,35,0) 70%);
+    pointer-events: none;
+}}
+.hero-head {{
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1.15rem; position: relative; z-index: 1;
+}}
+.hero-title {{
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+    font-size: 1.02rem; letter-spacing: -0.01em;
+    display: inline-flex; align-items: center; gap: 0.5rem;
+}}
+.hero-badge {{
+    font-size: 0.72rem; font-weight: 600;
+    background: rgba(255, 255, 255, 0.16); backdrop-filter: blur(8px);
+    padding: 0.32rem 0.75rem; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 0.4rem;
+}}
+.hero-grid {{
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 0; position: relative; z-index: 1;
+}}
+.hero-kpi {{ padding: 0 1.25rem; }}
+.hero-kpi + .hero-kpi {{ border-left: 1px solid rgba(255, 255, 255, 0.16); }}
+.hero-kpi:first-child {{ padding-left: 0; }}
+.hk-label {{
+    font-size: 0.72rem; font-weight: 600; opacity: 0.88;
+    text-transform: uppercase; letter-spacing: 0.045em;
+    display: inline-flex; align-items: center; gap: 0.4rem;
+}}
+.hk-value {{
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+    font-size: 1.95rem; line-height: 1.04; margin-top: 0.4rem;
+    letter-spacing: -0.02em; white-space: nowrap;
+}}
+.hk-unit {{ font-size: 0.92rem; font-weight: 600; opacity: 0.82; margin-left: 0.18rem; }}
+.hk-sub {{
+    font-size: 0.73rem; opacity: 0.82; margin-top: 0.3rem;
+    font-family: 'JetBrains Mono', monospace;
+}}
+.hk-sub .up {{ color: #6EE7B7; font-weight: 700; }}
+/* Streamlit pisa el color del texto dentro de stMarkdown con el gris del tema.
+   Forzar blanco en TODO el contenido del hero (excepto el delta verde). */
+.hero-impact, .hero-impact .hero-title, .hero-impact .hero-badge,
+.hero-impact .hk-label, .hero-impact .hk-value, .hero-impact .hk-unit,
+.hero-impact .hk-sub {{ color: #fff !important; }}
+.hero-impact .hk-sub .up {{ color: #6EE7B7 !important; }}
+
+/* --- Cola HITL (lista compacta) --- */
+.hitl-row {{
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.62rem 0.2rem;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+}}
+.hitl-row:last-child {{ border-bottom: none; }}
+.hitl-tag {{
+    font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; font-weight: 600;
+    color: {PRIMARY}; background: rgba(12, 116, 200, 0.08);
+    padding: 0.2rem 0.45rem; border-radius: 6px; flex-shrink: 0;
+}}
+.hitl-name {{
+    flex: 1; min-width: 0; font-weight: 600; font-size: 0.83rem; color: {INK};
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}}
+.hitl-field {{ font-size: 0.72rem; color: rgba(65, 68, 75, 0.6); }}
+.hitl-conf {{
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.78rem;
+    padding: 0.16rem 0.5rem; border-radius: 7px; flex-shrink: 0;
+}}
+.hitl-conf.warn {{ color: #B45309; background: rgba(245, 158, 11, 0.13); }}
+.hitl-conf.danger {{ color: #B91C1C; background: rgba(220, 38, 38, 0.10); }}
+.hitl-more {{
+    text-align: center; font-size: 0.76rem; color: {PRIMARY}; font-weight: 600;
+    padding: 0.6rem 0 0.1rem 0;
+}}
+.hitl-empty {{
+    text-align: center; color: rgba(65, 68, 75, 0.6); font-size: 0.85rem;
+    padding: 1.5rem 0.5rem;
+}}
+
 /* --- Doc type cards --- */
 .doctype-grid {{
     display: grid;
@@ -795,6 +900,13 @@ h1, h2, h3, h4, .display, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {{
     box-shadow: 0 10px 24px -6px rgba(12, 116, 200, 0.45) !important;
     transform: translateY(-1px) !important;
     color: white !important;
+}}
+/* Streamlit envuelve el label/icono en <p>/<span>/<svg> internos que NO heredan
+   el color del boton y se quedan con el gris del tema -> texto casi invisible
+   sobre el azul. Forzar blanco en TODOS los descendientes de los botones azules. */
+.stButton > button[kind="primary"] *, .stDownloadButton > button * {{
+    color: white !important;
+    fill: white !important;
 }}
 .stButton > button[kind="secondary"] {{
     background: white !important;
@@ -1081,6 +1193,39 @@ h1, h2, h3, h4, .display, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {{
     .navbar-status {{ display: none; }}
     .result-hero {{ flex-direction: column; text-align: left; gap: 1rem; }}
     .result-hero .r-conf {{ text-align: left; }}
+
+    /* --- Apilar columnas de Streamlit (graficos, KPIs, doc|datos, toolbar) --- */
+    [data-testid="stHorizontalBlock"] {{ flex-direction: column !important; gap: 0.75rem !important; }}
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
+    [data-testid="stHorizontalBlock"] > [data-testid="column"] {{
+        width: 100% !important; flex: 1 1 100% !important; min-width: 0 !important;
+    }}
+    /* Mas ancho util: menos padding lateral del contenedor */
+    .block-container {{ padding-left: 1rem !important; padding-right: 1rem !important;
+                        padding-top: 1rem !important; }}
+
+    /* --- Hero: 4 KPIs -> rejilla 2x2 --- */
+    .hero-impact {{ padding: 1.15rem 1.1rem 1.3rem; }}
+    .hero-head {{ flex-direction: column; align-items: flex-start;
+                  gap: 0.55rem; margin-bottom: 1rem; }}
+    .hero-badge {{ font-size: 0.66rem; }}
+    .hero-grid {{ grid-template-columns: repeat(2, 1fr); gap: 1.25rem 0; }}
+    .hero-kpi {{ padding: 0 0.85rem; }}
+    .hero-kpi + .hero-kpi {{ border-left: none; }}
+    .hero-kpi:nth-child(odd) {{ padding-left: 0; }}
+    .hero-kpi:nth-child(even) {{ border-left: 1px solid rgba(255, 255, 255, 0.16); }}
+    .hk-value {{ font-size: 1.6rem; }}
+
+    /* --- Titulo + overlay mas compactos --- */
+    .app-header {{ padding: 0.4rem 0 1.1rem 0; }}
+    .proc-card {{ padding: 1.6rem 1.3rem; min-width: 0; width: 88%; max-width: 340px; }}
+    .panel-header {{ padding: 0.9rem 1.1rem; }}
+}}
+@media (max-width: 420px) {{
+    /* Pantallas muy chicas: hero a 1 columna para que no se aprieten los numeros */
+    .hero-grid {{ grid-template-columns: 1fr; gap: 0.9rem; }}
+    .hero-kpi {{ padding: 0; border-left: none !important; }}
+    .hero-kpi:nth-child(even) {{ border-left: none !important; }}
 }}
 
 /* ============================================================
@@ -1126,7 +1271,38 @@ h1, h2, h3, h4, .display, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {{
     margin-top: 0.35rem;
     font-size: 0.85rem;
     color: rgba(65, 68, 75, 0.6);
+    min-height: 1.05rem;
 }}
+/* Stepper del overlay: muestra TODAS las fases del pipeline a la vez,
+   con su estado (hecha / en curso / pendiente). */
+.proc-steps {{
+    margin: 1.5rem auto 0;
+    text-align: left;
+    display: flex; flex-direction: column; gap: 0.15rem;
+    max-width: 280px;
+}}
+.proc-step {{
+    display: flex; align-items: center; gap: 0.7rem;
+    padding: 0.42rem 0.2rem;
+    font-family: 'Inter', sans-serif; font-size: 0.93rem;
+    transition: color 0.2s ease;
+}}
+.proc-step .pin {{
+    width: 22px; height: 22px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 0.78rem; font-weight: 700;
+    box-sizing: border-box;
+}}
+.proc-step.pending {{ color: rgba(65, 68, 75, 0.42); }}
+.proc-step.pending .pin {{ border: 2px solid rgba(65, 68, 75, 0.22); }}
+.proc-step.active {{ color: {INK}; font-weight: 600; }}
+.proc-step.active .pin {{
+    border: 2px solid rgba(12, 116, 200, 0.2);
+    border-top-color: {PRIMARY};
+    animation: procspin 0.8s linear infinite;
+}}
+.proc-step.done {{ color: #047857; font-weight: 500; }}
+.proc-step.done .pin {{ background: rgba(16, 185, 129, 0.14); color: #047857; }}
 
 /* Tabla editable (HITL): que combine con el estilo de las cards */
 [data-testid="stDataFrame"], [data-testid="stDataEditor"], [data-testid="stDataFrameResizable"] {{
@@ -1145,7 +1321,11 @@ h1, h2, h3, h4, .display, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {{
 # ---------------------------------------------------------------------------
 
 if "history" not in st.session_state:
-    st.session_state.history: list[DocumentResult] = []
+    # Arrancamos con una base de documentos ya procesados (seed) para que el
+    # dashboard muestre valor desde el primer segundo. Lo que el usuario procese
+    # en vivo se agrega encima. El flag permite distinguir seed vs real.
+    st.session_state.history: list[DocumentResult] = build_seed_history()
+    st.session_state.seeded = True
 if "last_result" not in st.session_state:
     st.session_state.last_result: DocumentResult | None = None
 
@@ -1192,23 +1372,6 @@ _header_html = (
     '<h1>Centro de <span class="gradient-text">inteligencia documental</span></h1>'
     '<p>Procesamiento masivo de documentos con clasificación automática, OCR híbrido '
     'y extracción de entidades estructuradas para operaciones enterprise.</p>'
-    '<div class="capability-strip">'
-        f'<div class="cap-item"><div class="ic">{icon("layers", 18, PRIMARY)}</div>'
-            '<div class="body"><div class="value">4 tipologías</div>'
-            '<div class="label">Cédula · CC · RUT · Póliza</div></div></div>'
-        f'<div class="cap-item"><div class="ic">{icon("tag", 18, PRIMARY)}</div>'
-            f'<div class="body"><div class="value">{TOTAL_FIELDS} campos</div>'
-            '<div class="label">Extracción NER + regex</div></div></div>'
-        f'<div class="cap-item"><div class="ic">{icon("target", 18, PRIMARY)}</div>'
-            f'<div class="body"><div class="value">{PM["accuracy"]:.1%}</div>'
-            '<div class="label">Accuracy en clasificación</div></div></div>'
-        f'<div class="cap-item"><div class="ic">{icon("cpu", 18, PRIMARY)}</div>'
-            '<div class="body"><div class="value">OCR híbrido</div>'
-            '<div class="label">PyMuPDF + EasyOCR</div></div></div>'
-        f'<div class="cap-item"><div class="ic">{icon("infinity", 18, PRIMARY)}</div>'
-            '<div class="body"><div class="value">Escalable</div>'
-            '<div class="label">Miles de documentos</div></div></div>'
-    '</div>'
     '</div>'
 )
 st.markdown(_header_html, unsafe_allow_html=True)
@@ -1430,33 +1593,33 @@ def _render_result(result: DocumentResult) -> None:
 # Tabs (texto plano, sin emoji)
 # ---------------------------------------------------------------------------
 
-active_tab = st.query_params.get("tab", "dashboard")
+# Tab activo: vive en session_state para que cambiar de pestaña sea un rerun
+# por websocket (fluido, sin recargar la página ni re-sembrar los 1.500 docs).
+# Se inicializa desde el query param la primera vez (enlaces directos / ?dev=1).
+if "active_tab" not in st.session_state:
+    st.session_state.active_tab = st.query_params.get("tab", "dashboard")
+active_tab = st.session_state.active_tab
 
 
-def _tab_link(label: str, icon_name: str, key: str) -> str:
-    is_active = key == active_tab
-    cls = " active" if is_active else ""
-    color = "white" if is_active else "currentColor"
-    extras = []
-    if use_mock:
-        extras.append("dev=1")
-    extras.append(f"tab={key}")
-    href = "?" + "&amp;".join(extras)
-    return (
-        f'<a href="{href}" class="tab-link{cls}" target="_self">'
-        f'{icon(icon_name, 16, color)}<span>{label}</span>'
-        f'</a>'
+def _go_tab(key: str) -> None:
+    st.session_state.active_tab = key
+    st.query_params["tab"] = key  # refleja en la URL, sin recargar
+
+
+st.markdown('<div class="tabbar-row"></div>', unsafe_allow_html=True)
+_nav = st.columns([1.25, 1.2, 1.0, 5.55], gap="small")
+for _col, (_key, _label) in zip(
+    _nav[:3],
+    [("dashboard", "Dashboard"), ("procesar", "Procesar"), ("casos", "Casos")],
+):
+    _col.button(
+        _label,
+        key=f"nav_{_key}",
+        type="primary" if _key == active_tab else "secondary",
+        use_container_width=True,
+        on_click=_go_tab,
+        args=(_key,),
     )
-
-
-st.markdown(
-    '<div class="tabbar">'
-    + _tab_link("Dashboard", "bar-chart", "dashboard")
-    + _tab_link("Procesar", "scan", "procesar")
-    + _tab_link("Casos", "folder", "casos")
-    + '</div>',
-    unsafe_allow_html=True,
-)
 
 
 # ============================================================================
@@ -1466,62 +1629,195 @@ st.markdown(
 if active_tab == "dashboard":
     history = st.session_state.history
     ok = [r for r in history if not r.error]
-    n_total = len(history)
     n_ok = len(ok)
-    n_err = n_total - n_ok
 
-    avg_time = (sum(r.processing_time_ms for r in ok) / n_ok) if n_ok else 0
-    avg_conf = (sum(r.doc_type_confidence for r in ok) / n_ok) if n_ok else 0
-    total_entities = sum(len(r.entities) for r in ok)
+    _mil = lambda n: f"{int(n):,}".replace(",", ".")  # 1500 -> "1.500"
 
-    # KPIs principales
-    c1, c2, c3, c4 = st.columns(4)
-    err_html = f' &middot; <span style="color:#B91C1C;">{n_err} con error</span>' if n_err else ''
-    c1.markdown(_h(f"""
-<div class="kpi">
-<div class="kpi-head">{icon("inbox", 14, PRIMARY, klass="ic")} Documentos procesados</div>
-<div class="kpi-value">{n_total}</div>
-<div class="kpi-sub"><span style="color:#047857;">{n_ok} ok</span>{err_html}</div>
-</div>
-"""), unsafe_allow_html=True)
-    c2.markdown(_h(f"""
-<div class="kpi">
-<div class="kpi-head accent">{icon("database", 14, ACCENT, klass="ic")} Entidades extraídas</div>
-<div class="kpi-value">{total_entities:,}</div>
-<div class="kpi-sub">total acumulado en sesión</div>
-</div>
-"""), unsafe_allow_html=True)
-    c3.markdown(_h(f"""
-<div class="kpi">
-<div class="kpi-head">{icon("clock", 14, PRIMARY, klass="ic")} Latencia promedio</div>
-<div class="kpi-value">{int(avg_time):,}<span class="kpi-unit">ms</span></div>
-<div class="kpi-sub">por documento</div>
-</div>
-"""), unsafe_allow_html=True)
-    c4.markdown(_h(f"""
-<div class="kpi">
-<div class="kpi-head">{icon("target", 14, PRIMARY, klass="ic")} Confianza media</div>
-<div class="kpi-value">{avg_conf:.1%}</div>
-<div class="kpi-sub">clasificación correcta</div>
-</div>
-"""), unsafe_allow_html=True)
-
-    if not history:
+    if not ok:
         st.markdown(_h(f"""
 <div class="empty-state" style="margin-top:1.5rem;">
 <div class="ic-wrap">{icon("activity", 28, PRIMARY)}</div>
-<h3>Aún no hay actividad en esta sesión</h3>
+<h3>No hay documentos para mostrar</h3>
 <p>El dashboard se llena automáticamente a medida que procesás documentos. Empezá en la pestaña <strong>Procesar</strong>.</p>
 </div>
 """), unsafe_allow_html=True)
-    elif ok:
-        # Charts
-        col_pie, col_hist = st.columns([1, 1])
-        with col_pie:
+    else:
+        m = compute_business_metrics(history)
+
+        # ------------------------------------------------------------------
+        # BANDA HERO — 4 KPIs de negocio (impacto del piloto)
+        # ------------------------------------------------------------------
+        ahorro = m["ahorro_cop"]
+        ahorro_str = (f"${ahorro/1_000_000:.1f}" if ahorro >= 1_000_000
+                      else f"${ahorro/1_000:.0f}")
+        ahorro_unit = "M COP" if ahorro >= 1_000_000 else "K COP"
+        jornadas = m["horas_ahorradas"] / 8.0
+
+        st.markdown(_h(f"""
+<div class="hero-impact">
+  <div class="hero-head">
+    <div class="hero-title">{icon("trending-up", 17, "#fff")} Impacto operativo del piloto</div>
+    <div class="hero-badge">{icon("clock", 12, "#fff")} {_mil(n_ok)} documentos · últimos 30 días</div>
+  </div>
+  <div class="hero-grid">
+    <div class="hero-kpi">
+      <div class="hk-label">{icon("trending-up", 13, "#fff")} Ahorro estimado</div>
+      <div class="hk-value">{ahorro_str}<span class="hk-unit">{ahorro_unit}</span></div>
+      <div class="hk-sub">vs. captura manual</div>
+    </div>
+    <div class="hero-kpi">
+      <div class="hk-label">{icon("clock", 13, "#fff")} Tiempo ahorrado</div>
+      <div class="hk-value">{m["horas_ahorradas"]:.0f}<span class="hk-unit">h</span></div>
+      <div class="hk-sub">≈ {jornadas:.0f} jornadas laborales</div>
+    </div>
+    <div class="hero-kpi">
+      <div class="hk-label">{icon("zap", 13, "#fff")} Automatización</div>
+      <div class="hk-value">{m["tasa_automatizacion"]*100:.0f}<span class="hk-unit">%</span></div>
+      <div class="hk-sub">{_mil(m["n_auto"])} sin intervención</div>
+    </div>
+    <div class="hero-kpi">
+      <div class="hk-label">{icon("target", 13, "#fff")} Precisión de extracción</div>
+      <div class="hk-value">{m["precision"]*100:.0f}<span class="hk-unit">%</span></div>
+      <div class="hk-sub"><span class="up">▼ {m["reduccion_error_pct"]*100:.0f}%</span> errores vs. manual</div>
+    </div>
+  </div>
+</div>
+"""), unsafe_allow_html=True)
+
+        # ------------------------------------------------------------------
+        # FILA 2 — Volumen en el tiempo (línea)  |  Cola de revisión HITL
+        # ------------------------------------------------------------------
+        col_vol, col_hitl = st.columns([1.5, 1], gap="medium")
+
+        with col_vol:
             st.markdown(
                 f'<div class="panel"><div class="panel-header">'
-                f'<h3><span class="ic-wrap">{icon("pie-chart", 14, PRIMARY)}</span> Distribución por tipo</h3>'
-                f'<span class="meta">{n_ok} documentos</span>'
+                f'<h3><span class="ic-wrap">{icon("activity", 14, PRIMARY)}</span> Volumen procesado</h3>'
+                f'<span class="meta">últimos 30 días</span>'
+                f'</div><div class="panel-body">',
+                unsafe_allow_html=True,
+            )
+            vb = volume_by_day(history)
+            if vb:
+                xs = [d for d, _ in vb]
+                ys = [c for _, c in vb]
+                figv = px.area(x=xs, y=ys)
+                figv.update_traces(
+                    line=dict(width=2.6, color=PRIMARY),
+                    fillcolor="rgba(12,116,200,0.10)",
+                    mode="lines",
+                    hovertemplate="%{x|%d %b}<br>%{y} docs<extra></extra>",
+                )
+                figv.update_layout(
+                    height=248,
+                    margin=dict(t=10, b=30, l=34, r=10),
+                    xaxis_title=None, yaxis_title=None,
+                    font=dict(family="Inter, sans-serif", color=DARK, size=11),
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    xaxis=dict(showgrid=False, tickformat="%d %b",
+                               tickfont=dict(family="JetBrains Mono, monospace", size=10)),
+                    yaxis=dict(gridcolor="rgba(15,23,42,0.05)", rangemode="tozero",
+                               tickfont=dict(family="JetBrains Mono, monospace", size=10)),
+                )
+                st.plotly_chart(figv, use_container_width=True, config={"displayModeBar": False})
+            st.markdown('</div></div>', unsafe_allow_html=True)
+
+        with col_hitl:
+            review_docs = [r for r in ok if needs_review(r)]
+            pct_rev = len(review_docs) / n_ok * 100 if n_ok else 0
+            # Ordenamos por confianza del peor campo (más urgente primero) y
+            # mostramos una muestra REPARTIDA en todo el rango de la cola, para
+            # que se vea un gradiente realista (55%→79%) y no todos en ~55%.
+            _by_conf = sorted(review_docs,
+                              key=lambda r: min((e.confidence for e in r.entities), default=1.0))
+            _n = len(_by_conf)
+            if _n <= 6:
+                _queue = _by_conf
+            else:
+                _idxs = sorted({round(i * (_n - 1) / 5) for i in range(6)})
+                _queue = [_by_conf[i] for i in _idxs]
+            st.markdown(
+                f'<div class="panel"><div class="panel-header">'
+                f'<h3><span class="ic-wrap">{icon("users", 14, PRIMARY)}</span> Cola de revisión (HITL)</h3>'
+                f'<span class="meta">{pct_rev:.0f}% del total</span>'
+                f'</div><div class="panel-body">',
+                unsafe_allow_html=True,
+            )
+            _SHORT = {DocType.CAMARA_COMERCIO: "CC", DocType.RUT: "RUT",
+                      DocType.POLIZA: "POL", DocType.CEDULA: "CED"}
+            if review_docs:
+                rows = ""
+                for r in _queue:
+                    lf = low_fields(r)
+                    worst = min(lf, key=lambda e: e.confidence) if lf else \
+                        min(r.entities, key=lambda e: e.confidence)
+                    cls = "danger" if worst.confidence < 0.65 else "warn"
+                    tag = f"{_SHORT.get(r.doc_type, '?')}-{r.filename.split('_')[-1].split('.')[0]}"
+                    rows += (
+                        f'<div class="hitl-row">'
+                        f'<span class="hitl-tag">{tag}</span>'
+                        f'<span class="hitl-name">{humanize_entity_label(worst.label)} '
+                        f'<span class="hitl-field">· {DOC_TYPE_LABELS[r.doc_type]}</span></span>'
+                        f'<span class="hitl-conf {cls}">{worst.confidence*100:.0f}%</span>'
+                        f'</div>'
+                    )
+                extra = len(review_docs) - len(_queue)
+                if extra > 0:
+                    rows += f'<div class="hitl-more">+ {_mil(extra)} documentos más en la cola →</div>'
+                st.markdown(rows, unsafe_allow_html=True)
+            else:
+                st.markdown(
+                    f'<div class="hitl-empty">{icon("check-circle", 22, SUCCESS)}<br>'
+                    f'Sin documentos pendientes de revisión</div>',
+                    unsafe_allow_html=True,
+                )
+            st.markdown('</div></div>', unsafe_allow_html=True)
+
+        # ------------------------------------------------------------------
+        # FILA 3 — Confianza por tipo (barras)  |  Distribución por tipo (donut)
+        # ------------------------------------------------------------------
+        col_conf, col_dist = st.columns([1.3, 1], gap="medium")
+
+        with col_conf:
+            st.markdown(
+                f'<div class="panel"><div class="panel-header">'
+                f'<h3><span class="ic-wrap">{icon("gauge", 14, PRIMARY)}</span> Confianza por tipo documental</h3>'
+                f'<span class="meta">media de campo</span>'
+                f'</div><div class="panel-body">',
+                unsafe_allow_html=True,
+            )
+            cbt = confidence_by_type(history)
+            if cbt:
+                items = sorted(cbt.items(), key=lambda kv: kv[1])  # asc -> el peor abajo->arriba
+                labels = [DOC_TYPE_LABELS[dt] for dt, _ in items]
+                vals = [v * 100 for _, v in items]
+                figc = px.bar(x=vals, y=labels, orientation="h")
+                figc.update_traces(
+                    marker=dict(color=PRIMARY, line=dict(color="white", width=0)),
+                    text=[f"{v:.0f}%" for v in vals],
+                    textposition="outside",
+                    textfont=dict(family="JetBrains Mono, monospace", size=11, color=INK),
+                    hovertemplate="%{y}: %{x:.0f}%<extra></extra>",
+                    cliponaxis=False,
+                )
+                figc.update_layout(
+                    height=248,
+                    margin=dict(t=10, b=20, l=10, r=20),
+                    xaxis_title=None, yaxis_title=None,
+                    font=dict(family="Inter, sans-serif", color=DARK, size=11),
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    xaxis=dict(range=[0, 108], showgrid=False, showticklabels=False),
+                    yaxis=dict(showgrid=False,
+                               tickfont=dict(family="Inter, sans-serif", size=12, color=INK)),
+                    bargap=0.35,
+                )
+                st.plotly_chart(figc, use_container_width=True, config={"displayModeBar": False})
+            st.markdown('</div></div>', unsafe_allow_html=True)
+
+        with col_dist:
+            st.markdown(
+                f'<div class="panel"><div class="panel-header">'
+                f'<h3><span class="ic-wrap">{icon("pie-chart", 14, PRIMARY)}</span> Mezcla documental</h3>'
                 f'</div><div class="panel-body">',
                 unsafe_allow_html=True,
             )
@@ -1530,81 +1826,26 @@ if active_tab == "dashboard":
             dist = {k: v for k, v in dist.items() if v > 0}
             if dist:
                 fig = px.pie(
-                    names=list(dist.keys()),
-                    values=list(dist.values()),
+                    names=list(dist.keys()), values=list(dist.values()),
                     color_discrete_sequence=[PRIMARY, ACCENT, PRIMARY_DARK, "#82A5C9"],
-                    hole=0.6,
+                    hole=0.62,
                 )
                 fig.update_traces(
-                    textposition="outside",
-                    textinfo="label+percent",
+                    textposition="outside", textinfo="percent",
                     marker=dict(line=dict(color="white", width=3)),
-                    textfont=dict(family="Inter, sans-serif", size=12, color=INK),
+                    textfont=dict(family="Inter, sans-serif", size=11, color=INK),
+                    hovertemplate="%{label}: %{value} docs<extra></extra>",
                 )
                 fig.update_layout(
-                    height=300,
-                    margin=dict(t=10, b=10, l=10, r=10),
-                    showlegend=False,
-                    font=dict(family="Inter, sans-serif", color=DARK, size=12),
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    plot_bgcolor="rgba(0,0,0,0)",
+                    height=248, margin=dict(t=10, b=10, l=10, r=10),
+                    showlegend=True,
+                    legend=dict(orientation="h", yanchor="bottom", y=-0.18,
+                                font=dict(family="Inter, sans-serif", size=10)),
+                    font=dict(family="Inter, sans-serif", color=DARK, size=11),
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 )
                 st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
             st.markdown('</div></div>', unsafe_allow_html=True)
-
-        with col_hist:
-            st.markdown(
-                f'<div class="panel"><div class="panel-header">'
-                f'<h3><span class="ic-wrap">{icon("bar-chart", 14, PRIMARY)}</span> Distribución de confianza</h3>'
-                f'<span class="meta">{n_ok} muestras</span>'
-                f'</div><div class="panel-body">',
-                unsafe_allow_html=True,
-            )
-            confs = [r.doc_type_confidence for r in ok]
-            fig2 = px.histogram(
-                x=confs, nbins=10, range_x=[0, 1],
-                color_discrete_sequence=[PRIMARY],
-            )
-            fig2.update_traces(marker_line_color="white", marker_line_width=2)
-            fig2.update_layout(
-                height=300,
-                margin=dict(t=10, b=40, l=40, r=10),
-                xaxis_title=None, yaxis_title=None,
-                bargap=0.08,
-                font=dict(family="Inter, sans-serif", color=DARK, size=12),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                xaxis=dict(tickformat=".0%", showgrid=False,
-                           tickfont=dict(family="JetBrains Mono, monospace", size=11)),
-                yaxis=dict(gridcolor="rgba(15,23,42,0.05)",
-                           tickfont=dict(family="JetBrains Mono, monospace", size=11)),
-            )
-            st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
-            st.markdown('</div></div>', unsafe_allow_html=True)
-
-        # Tipos en sesión
-        st.markdown(
-            f'<div class="section-title">{icon("layers", 14, PRIMARY, klass="ic")} '
-            f'Tipos documentales en esta sesión</div>',
-            unsafe_allow_html=True,
-        )
-        cards_html = '<div class="doctype-grid">'
-        for dt in DOC_TYPES_ORDER:
-            count = sum(1 for r in ok if r.doc_type == dt)
-            pct = (count / n_ok * 100) if n_ok else 0
-            active_cls = " active" if count > 0 else ""
-            ic = icon(DOC_TYPE_ICON_NAME[dt], 22)
-            cards_html += (
-                f'<div class="doctype{active_cls}">'
-                f'<div class="doctype-icon">{ic}</div>'
-                f'<div class="dt-label">{DOC_TYPE_LABELS[dt]}</div>'
-                f'<div class="dt-meta">{pct:.0f}% de la sesión</div>'
-                f'<div class="dt-count">{count}</div>'
-                f'<div class="dt-count-label">docs</div>'
-                f'</div>'
-            )
-        cards_html += '</div>'
-        st.markdown(cards_html, unsafe_allow_html=True)
 
 
 # ============================================================================
@@ -1618,6 +1859,23 @@ elif active_tab == "procesar":
 <h2>{icon("upload", 16, PRIMARY, klass="ic")} Ingestar documento</h2>
 <p>PDF, PNG o JPG · OCR + clasificación + extracción en tiempo real</p>
 </div>
+</div>
+"""), unsafe_allow_html=True)
+
+    # Aviso de modo demostración: si NO estamos en ?dev=1 pero el modelo real
+    # (gliner2) no está en este entorno, la app cae a datos simulados. Lo
+    # avisamos para no confundir (en el Space v2 el modelo sí está y no aparece).
+    import importlib.util as _ilu
+    if not use_mock and _ilu.find_spec("gliner2") is None:
+        st.markdown(_h(f"""
+<div style="max-width:820px;margin:0.4rem auto 0;padding:0.7rem 1.1rem;
+            background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.3);
+            border-radius:11px;display:flex;align-items:center;gap:0.6rem;
+            font-size:0.85rem;color:#92520B;">
+{icon("info", 16, "#B45309")}
+<span><strong>Modo demostración</strong> — el modelo real no está disponible en
+este entorno, así que los resultados son <strong>simulados</strong>. En el
+despliegue de producción se usa el modelo real.</span>
 </div>
 """), unsafe_allow_html=True)
 
@@ -1651,39 +1909,66 @@ elif active_tab == "procesar":
 
         if process:
             file_bytes = uploaded.getvalue()
-            pipeline = _cached_pipeline(use_mock)
 
-            # Overlay centrado con spinner: muestra la fase actual mientras
-            # procesa y desaparece al terminar (recien ahi se ven los resultados).
+            # Overlay centrado con spinner: se muestra ANTES de cargar los
+            # modelos para que aparezca al instante (la carga del modelo es lo
+            # lento la primera vez, y queremos que el usuario vea el spinner ya).
             overlay = st.empty()
 
-            def _spin(msg, sub="Esto puede tardar unos segundos la primera vez…"):
+            _STEPS = [
+                "Extracción de texto (OCR)",
+                "Clasificación de tipología",
+                "Extracción de entidades (NER)",
+            ]
+
+            def _spin(active_idx, sub="Esto puede tardar unos segundos la primera vez…"):
+                # Muestra TODAS las fases a la vez con su estado: las anteriores a
+                # `active_idx` como hechas (✓), la actual girando, las siguientes
+                # pendientes. Así el pipeline completo es visible aunque el NER se
+                # lleve casi todo el tiempo.
+                steps_html = ""
+                for i, label in enumerate(_STEPS):
+                    if i < active_idx:
+                        state, pin = "done", "✓"
+                    elif i == active_idx:
+                        state, pin = "active", ""
+                    else:
+                        state, pin = "pending", ""
+                    steps_html += (
+                        f'<div class="proc-step {state}">'
+                        f'<span class="pin">{pin}</span><span>{label}</span></div>'
+                    )
                 overlay.markdown(
                     f'<div class="proc-overlay"><div class="proc-card">'
-                    f'<div class="proc-spinner"></div>'
-                    f'<div class="proc-msg">{msg}</div>'
-                    f'<div class="proc-sub">{sub}</div></div></div>',
+                    f'<div class="proc-msg">Procesando documento…</div>'
+                    f'<div class="proc-sub">{sub}</div>'
+                    f'<div class="proc-steps">{steps_html}</div>'
+                    f'</div></div>',
                     unsafe_allow_html=True,
                 )
+
+            # Spinner YA visible mientras se cargan los modelos (1ª vez es lento).
+            _spin(0, sub="Preparando los modelos… (la primera vez puede tardar)")
+            pipeline = _cached_pipeline(use_mock)
 
             try:
                 if hasattr(pipeline, "run_ocr"):
                     import time as _t
                     _start = _t.time()
 
-                    _spin("Extrayendo texto (OCR)…")
+                    _spin(0, sub="Leyendo el documento con OCR…")
                     text, engine = pipeline.run_ocr(file_bytes, uploaded.name)
                     if not text or not text.strip():
                         raise ValueError("No se pudo extraer texto del documento.")
 
-                    _spin("Clasificando tipología…")
+                    _spin(1, sub="Detectando el tipo de documento…")
                     doctype_str, conf, doc_type = pipeline.run_classify(text)
 
                     if pipeline.needs_rut_reocr(doc_type, engine):
-                        _spin("Releyendo el RUT (casillas DIAN)…")
+                        _spin(2, sub="Releyendo el RUT (casillas DIAN) antes de extraer…")
                         text, engine = pipeline.run_ocr(file_bytes, uploaded.name, force_ocr=True)
 
-                    _spin("Extrayendo entidades (NER)…")
+                    _spin(2, sub="Extrayendo los campos clave… (puede tardar en CPU)")
                     entities = pipeline.run_ner(text, doctype_str)
 
                     result = DocumentResult(
@@ -1695,7 +1980,7 @@ elif active_tab == "procesar":
                         processing_time_ms=int((_t.time() - _start) * 1000),
                     )
                 else:
-                    _spin("Procesando documento…")
+                    _spin(0, sub="Procesando documento…")
                     result = pipeline.process(file_bytes, uploaded.name)
             except Exception as e:
                 result = DocumentResult(
@@ -1788,10 +2073,21 @@ elif active_tab == "casos":
         else:
             filtered = [r for r in history if DOC_TYPE_LABELS.get(r.doc_type) == filter_choice]
 
+        # Cap de render: con el piloto sembrado (~1.500 docs) no tiene sentido
+        # pintar un expander por cada uno. Mostramos los más recientes (los
+        # procesados en vivo, sin `_processed_at`, cuentan como los más nuevos).
+        CASOS_LIMIT = 50
+        total_filtered = len(filtered)
+        filtered = sorted(
+            filtered, key=lambda r: getattr(r, "_processed_at", datetime.max), reverse=True
+        )[:CASOS_LIMIT]
+        cap_note = (f' · mostrando los {CASOS_LIMIT} más recientes'
+                    if total_filtered > CASOS_LIMIT else '')
+
         st.markdown(
             f'<div style="color:rgba(65,68,75,0.55);font-size:0.8rem;'
             f'font-family:\'JetBrains Mono\',monospace;margin:1rem 0 0.75rem 0;">'
-            f'{len(filtered)} de {len(history)} casos</div>',
+            f'{len(filtered)} de {total_filtered} casos{cap_note}</div>',
             unsafe_allow_html=True,
         )
 
